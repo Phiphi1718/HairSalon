@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const productController = require('../controllers/productController');
+const productController = require('../controllers/productController'); // Kiểm tra dòng này
 const { authenticate, isAdmin } = require('../middlewares/authMiddleware');
 
 // Người dùng bình thường chỉ có thể lấy sản phẩm theo tên
