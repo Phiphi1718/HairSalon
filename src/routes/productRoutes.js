@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
+const { authenticate, isAdmin } = require('../middlewares/authMiddleware');
 
-router.get('/', productController.getAllProducts); // Lấy tất cả sản phẩm
-router.get('/:name', productController.getProductByName); // Lấy sản phẩm theo TÊN
-router.post('/', productController.createProduct); // Thêm sản phẩm mới
-router.put('/:name', productController.updateProductByName); // Cập nhật sản phẩm theo TÊN
-router.delete('/:name', productController.deleteProductByName); // Xóa sản phẩm theo TÊN
+// Người dùng bình thường chỉ có thể lấy sản phẩm theo tên
+router.get('/:name', authenticate, productController.getProductByName);
+router.get('/', authenticate, productController.getAllProducts);
+
+// Chỉ admin mới có quyền làm các thao tác sau
+router.post('/', authenticate, isAdmin, productController.createProduct);
+router.put('/:name', authenticate, isAdmin, productController.updateProductByName);
+router.delete('/:name', authenticate, isAdmin, productController.deleteProductByName);
 
 module.exports = router;

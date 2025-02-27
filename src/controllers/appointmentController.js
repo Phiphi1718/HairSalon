@@ -1,6 +1,7 @@
 const pool = require('../db');
+const { isAdmin } = require('../middlewares/authMiddleware');
 
-// Lấy tất cả lịch hẹn
+// Lấy tất cả lịch hẹn (Chỉ Admin mới được xem)
 const getAllAppointments = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -24,7 +25,7 @@ const getAllAppointments = async (req, res) => {
   }
 };
 
-// Thêm lịch hẹn mới
+// Thêm lịch hẹn mới (Ai cũng có thể đặt)
 const createAppointment = async (req, res) => {
   const { user_name, barber_name, service_name, appointment_date, status } = req.body;
 
@@ -55,96 +56,76 @@ const createAppointment = async (req, res) => {
   }
 };
 
-// Cập nhật lịch hẹn
+// Cập nhật lịch hẹn (Chỉ Admin)
 const updateAppointment = async (req, res) => {
-    const { user_name, barber_name, service_name, appointment_date, status } = req.body;
-  
-    try {
-      // Kiểm tra sự tồn tại của user, barber, service
-      const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
-      if (!user.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy user: ${user_name}` });
-      }
-  
-      const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
-      if (!barber.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy barber: ${barber_name}` });
-      }
-  
-      const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
-      if (!service.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy service: ${service_name}` });
-      }
-  
-      const user_id = user.rows[0].id;
-      const barber_id = barber.rows[0].id;
-      const service_id = service.rows[0].id;
-  
-      // Cập nhật lịch hẹn dựa trên user, barber và service
-      const result = await pool.query(
-        `UPDATE appointments
-         SET appointment_date = $4, status = $5
-         WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
-         RETURNING *`,
-        [user_id, barber_id, service_id, appointment_date, status]
-      );
-  
-      if (!result.rows.length) {
-        return res.status(404).json({ message: 'Không tìm thấy lịch hẹn để cập nhật' });
-      }
-  
-      res.status(200).json({ message: 'Cập nhật lịch hẹn thành công', appointment: result.rows[0] });
-    } catch (error) {
-      console.error('Lỗi khi cập nhật lịch hẹn:', error);
-      res.status(500).json({ message: 'Lỗi khi cập nhật lịch hẹn', error });
-    }
-  };
-  
+  const { user_name, barber_name, service_name, appointment_date, status } = req.body;
 
-// Xóa lịch hẹn
-const deleteAppointment = async (req, res) => {
-    const { user_name, barber_name, service_name } = req.body;
-  
-    try {
-      // Kiểm tra sự tồn tại của user, barber, service
-      const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
-      if (!user.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy user: ${user_name}` });
-      }
-  
-      const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
-      if (!barber.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy barber: ${barber_name}` });
-      }
-  
-      const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
-      if (!service.rows.length) {
-        return res.status(404).json({ message: `Không tìm thấy service: ${service_name}` });
-      }
-  
-      const user_id = user.rows[0].id;
-      const barber_id = barber.rows[0].id;
-      const service_id = service.rows[0].id;
-  
-      // Xóa lịch hẹn dựa trên user, barber và service
-      const result = await pool.query(
-        `DELETE FROM appointments
-         WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
-         RETURNING *`,
-        [user_id, barber_id, service_id]
-      );
-  
-      if (!result.rows.length) {
-        return res.status(404).json({ message: 'Không tìm thấy lịch hẹn để xóa' });
-      }
-  
-      res.status(200).json({ message: 'Xóa lịch hẹn thành công' });
-    } catch (error) {
-      console.error('Lỗi khi xóa lịch hẹn:', error);
-      res.status(500).json({ message: 'Lỗi khi xóa lịch hẹn', error });
+  try {
+    const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
+    const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
+    const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
+
+    if (!user.rows.length || !barber.rows.length || !service.rows.length) {
+      return res.status(404).json({ message: 'Không tìm thấy user, barber hoặc service' });
     }
-  };
-  
+
+    const user_id = user.rows[0].id;
+    const barber_id = barber.rows[0].id;
+    const service_id = service.rows[0].id;
+
+    const result = await pool.query(
+      `UPDATE appointments
+       SET appointment_date = $4, status = $5
+       WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
+       RETURNING *`,
+      [user_id, barber_id, service_id, appointment_date, status]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: 'Không tìm thấy lịch hẹn để cập nhật' });
+    }
+
+    res.status(200).json({ message: 'Cập nhật lịch hẹn thành công', appointment: result.rows[0] });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật lịch hẹn:', error);
+    res.status(500).json({ message: 'Lỗi khi cập nhật lịch hẹn', error });
+  }
+};
+
+// Xóa lịch hẹn (Chỉ Admin)
+const deleteAppointment = async (req, res) => {
+  const { user_name, barber_name, service_name } = req.body;
+
+  try {
+    const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
+    const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
+    const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
+
+    if (!user.rows.length || !barber.rows.length || !service.rows.length) {
+      return res.status(404).json({ message: 'Không tìm thấy user, barber hoặc service' });
+    }
+
+    const user_id = user.rows[0].id;
+    const barber_id = barber.rows[0].id;
+    const service_id = service.rows[0].id;
+
+    const result = await pool.query(
+      `DELETE FROM appointments
+       WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
+       RETURNING *`,
+      [user_id, barber_id, service_id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: 'Không tìm thấy lịch hẹn để xóa' });
+    }
+
+    res.status(200).json({ message: 'Xóa lịch hẹn thành công' });
+  } catch (error) {
+    console.error('Lỗi khi xóa lịch hẹn:', error);
+    res.status(500).json({ message: 'Lỗi khi xóa lịch hẹn', error });
+  }
+};
 
 module.exports = {
   getAllAppointments,

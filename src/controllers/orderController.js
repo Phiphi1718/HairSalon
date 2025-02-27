@@ -1,16 +1,11 @@
 const pool = require('../db');
+const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 
-// 🟢 Thêm đơn hàng mới
+// 🟢 Thêm đơn hàng mới (KHÁCH HÀNG)
 exports.createOrder = async (req, res) => {
   try {
-    const { user_name, items } = req.body;
-
-    // Lấy user_id từ user_name
-    const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
-    if (userResult.rowCount === 0) {
-      return res.status(400).json({ message: 'Người dùng không tồn tại' });
-    }
-    const user_id = userResult.rows[0].id;
+    const { items } = req.body;
+    const user_id = req.user.id; // Lấy user_id từ token
 
     // Tính tổng tiền
     let totalAmount = 0;
@@ -47,8 +42,8 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// 🟡 Lấy danh sách đơn hàng
-exports.getAllOrders = async (req, res) => {
+// 🟡 Lấy danh sách đơn hàng (ADMIN)
+exports.getAllOrders = [authMiddleware, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT o.id, u.username AS user_name, o.total_amount, o.status, o.created_at,
@@ -66,10 +61,10 @@ exports.getAllOrders = async (req, res) => {
     console.error('Lỗi khi lấy danh sách đơn hàng:', err);
     res.status(500).json({ message: 'Lỗi máy chủ', error: err });
   }
-};
+}];
 
-// 🟠 Cập nhật trạng thái đơn hàng
-exports.updateOrder = async (req, res) => {
+// 🟠 Cập nhật trạng thái đơn hàng (ADMIN)
+exports.updateOrder = [authMiddleware, isAdmin, async (req, res) => {
   try {
     const { order_id, status } = req.body;
 
@@ -88,10 +83,10 @@ exports.updateOrder = async (req, res) => {
     console.error('Lỗi khi cập nhật đơn hàng:', err);
     res.status(500).json({ message: 'Lỗi máy chủ', error: err });
   }
-};
+}];
 
-// 🔴 Xóa đơn hàng
-exports.deleteOrder = async (req, res) => {
+// 🔴 Xóa đơn hàng (ADMIN)
+exports.deleteOrder = [authMiddleware, isAdmin, async (req, res) => {
   try {
     const { order_id } = req.body;
 
@@ -107,4 +102,4 @@ exports.deleteOrder = async (req, res) => {
     console.error('Lỗi khi xóa đơn hàng:', err);
     res.status(500).json({ message: 'Lỗi máy chủ', error: err });
   }
-};
+}];

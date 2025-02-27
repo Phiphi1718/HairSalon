@@ -3,14 +3,16 @@ const {
   getAllAppointments,
   createAppointment,
   updateAppointment,
-  deleteAppointment,
+  deleteAppointment
 } = require('../controllers/appointmentController');
+
+const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.get('/', getAllAppointments);        // Lấy tất cả lịch hẹn
-router.post('/', createAppointment);        // Thêm lịch hẹn mới
-router.put('/', updateAppointment);   // Route cập nhật lịch hẹn
-router.delete('/', deleteAppointment); // Route xóa lịch hẹn
+router.get('/all', authMiddleware, isAdmin, getAllAppointments);  // Chỉ admin được xem
+router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
+router.put('/update', authMiddleware, isAdmin, updateAppointment);  // Chỉ admin có thể cập nhật
+router.delete('/delete', authMiddleware, isAdmin, deleteAppointment);  // Chỉ admin có thể xóa
 
 module.exports = router;

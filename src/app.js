@@ -6,6 +6,8 @@ const appointmentRoutes = require('./routes/appointmentRoutes');
 const barberRoutes = require('./routes/barberRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const userRoutes = require("./routes/userRoutes");
+
 
 
 
@@ -24,6 +26,8 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api', barberRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/orders', orderRoutes);  // Định tuyến API đơn hàng
+app.use('/api/users', userRoutes);
+
 
 
 

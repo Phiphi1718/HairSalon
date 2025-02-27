@@ -9,55 +9,52 @@ const authController = {
   register: async (req, res) => {
     try {
       const { username, email, password, phone } = req.body;
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin!' });
-      }
-      if (!/\S+@\S+\.\S+/.test(email)) {
-        return res.status(400).json({ message: 'Email không hợp lệ!' });
-      }
-
+      
+      // Kiểm tra xem email đã tồn tại chưa
       const existingUser = await User.findByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: 'Email đã được sử dụng!' });
+        return res.status(400).json({ message: "Email đã được sử dụng!" });
       }
 
+      // Hash mật khẩu
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = await User.create(username, email, hashedPassword, phone);
 
-      res.status(201).json({ message: 'Đăng ký thành công!', user: newUser });
+      // Tạo user mới
+      const newUser = await User.create(username, email, hashedPassword, phone);
+      res.status(201).json({ message: "Đăng ký thành công!", user: newUser });
     } catch (error) {
-      console.error('Lỗi khi đăng ký:', error);
-      res.status(500).json({ message: 'Đã có lỗi xảy ra!' });
+      console.error(error);
+      res.status(500).json({ message: "Lỗi server!" });
     }
   },
 
+  // Đăng nhập
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({ message: 'Vui lòng điền email và mật khẩu!' });
-      }
-
       const user = await User.findByEmail(email);
+
       if (!user) {
-        return res.status(400).json({ message: 'Email không tồn tại!' });
+        return res.status(400).json({ message: "Tài khoản không tồn tại!" });
       }
 
+      // So sánh mật khẩu
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(400).json({ message: 'Mật khẩu không đúng!' });
+        return res.status(401).json({ message: "Mật khẩu không chính xác!" });
       }
 
+      // Tạo token JWT
       const token = jwt.sign(
-        { id: user.id, email: user.email, user_type_id: user.user_type_id },
+        { id: user.id, username: user.username, user_type_id: user.user_type_id },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: "1h" }
       );
 
-      res.status(200).json({ message: 'Đăng nhập thành công!', token });
+      res.json({ message: "Đăng nhập thành công!", token });
     } catch (error) {
-      console.error('Lỗi khi đăng nhập:', error);
-      res.status(500).json({ message: 'Đã có lỗi xảy ra!' });
+      console.error(error);
+      res.status(500).json({ message: "Lỗi server!" });
     }
   },
 
@@ -122,3 +119,4 @@ const authController = {
 };
 
 module.exports = authController;
+

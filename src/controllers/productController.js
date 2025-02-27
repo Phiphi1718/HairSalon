@@ -1,7 +1,7 @@
 const Product = require('../models/productModel');
 
 const productController = {
-  // 📌 Lấy tất cả sản phẩm
+  // 📌 Lấy tất cả sản phẩm (Mọi người đều có quyền)
   getAllProducts: async (req, res) => {
     try {
       const products = await Product.getAll();
@@ -12,7 +12,7 @@ const productController = {
     }
   },
 
-  // 📌 Lấy sản phẩm theo TÊN
+  // 📌 Lấy sản phẩm theo TÊN (Mọi người đều có quyền)
   getProductByName: async (req, res) => {
     try {
       const { name } = req.params;
@@ -26,9 +26,13 @@ const productController = {
     }
   },
 
-  // 📌 Thêm sản phẩm mới
+  // 📌 Thêm sản phẩm mới (Chỉ admin)
   createProduct: async (req, res) => {
     try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Bạn không có quyền thêm sản phẩm' });
+      }
+
       const { name, description, price, stock, image_url } = req.body;
       if (!name || !price || !stock) {
         return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
@@ -42,9 +46,13 @@ const productController = {
     }
   },
 
-  // 📌 Cập nhật sản phẩm theo TÊN
+  // 📌 Cập nhật sản phẩm theo TÊN (Chỉ admin)
   updateProductByName: async (req, res) => {
     try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Bạn không có quyền cập nhật sản phẩm' });
+      }
+
       const { name } = req.params;
       const { description, price, stock, image_url } = req.body;
 
@@ -58,9 +66,13 @@ const productController = {
     }
   },
 
-  // 📌 Xóa sản phẩm theo TÊN
+  // 📌 Xóa sản phẩm theo TÊN (Chỉ admin)
   deleteProductByName: async (req, res) => {
     try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Bạn không có quyền xóa sản phẩm' });
+      }
+
       const { name } = req.params;
       const deletedProduct = await Product.deleteByName(name);
       if (!deletedProduct) return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
