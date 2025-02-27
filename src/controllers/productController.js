@@ -1,9 +1,12 @@
 const Product = require('../models/productModel');
 
 const productController = {
-  // 📌 Lấy tất cả sản phẩm (Mọi người đều có quyền)
+  // 🔹 Lấy tất cả sản phẩm (Chỉ khách hàng)
   getAllProducts: async (req, res) => {
     try {
+      if (!req.user || req.user.role !== 'customer') {
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+      }
       const products = await Product.getAll();
       res.status(200).json(products);
     } catch (error) {
@@ -12,9 +15,12 @@ const productController = {
     }
   },
 
-  // 📌 Lấy sản phẩm theo TÊN (Mọi người đều có quyền)
+  // 🔹 Lấy sản phẩm theo tên (Chỉ khách hàng)
   getProductByName: async (req, res) => {
     try {
+      if (!req.user || req.user.role !== 'customer') {
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+      }
       const { name } = req.params;
       const product = await Product.getByName(name);
       if (!product) return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
@@ -26,7 +32,7 @@ const productController = {
     }
   },
 
-  // 📌 Thêm sản phẩm mới (Chỉ admin)
+  // 🔹 Thêm sản phẩm (Chỉ admin)
   createProduct: async (req, res) => {
     try {
       if (!req.user || req.user.role !== 'admin') {
@@ -46,7 +52,7 @@ const productController = {
     }
   },
 
-  // 📌 Cập nhật sản phẩm theo TÊN (Chỉ admin)
+  // 🔹 Cập nhật sản phẩm theo tên (Chỉ admin)
   updateProductByName: async (req, res) => {
     try {
       if (!req.user || req.user.role !== 'admin') {
@@ -66,7 +72,7 @@ const productController = {
     }
   },
 
-  // 📌 Xóa sản phẩm theo TÊN (Chỉ admin)
+  // 🔹 Xóa sản phẩm theo tên (Chỉ admin)
   deleteProductByName: async (req, res) => {
     try {
       if (!req.user || req.user.role !== 'admin') {
@@ -85,11 +91,4 @@ const productController = {
   }
 };
 
-module.exports = {
-  getAllProducts,
-  getProductByName,
-  createProduct,
-  updateProductByName,
-  deleteProductByName
-};
-
+module.exports = productController;
