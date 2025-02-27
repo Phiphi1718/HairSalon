@@ -5,7 +5,7 @@ const { authenticate, isAdmin } = require('../middlewares/authMiddleware');
 
 // Người dùng bình thường chỉ có thể lấy sản phẩm theo tên
 router.get('/:name', authenticate, productController.getProductByName);
-router.get('/', authenticate, productController.getAllProducts);
+router.get('/products', productController.getAllProducts); 
 
 // Chỉ admin mới có quyền làm các thao tác sau
 router.post('/', authenticate, isAdmin, productController.createProduct);
