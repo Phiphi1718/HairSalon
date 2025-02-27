@@ -40,5 +40,11 @@ const isAdmin = async (req, res, next) => {
         res.status(500).json({ message: 'Lỗi server khi kiểm tra quyền' });
     }
 };
-
-module.exports = { authMiddleware, isAdmin };
+const authenticate = (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Bạn cần đăng nhập' });
+    }
+    next();
+  };
+  
+module.exports = { authMiddleware, isAdmin,authenticate };
