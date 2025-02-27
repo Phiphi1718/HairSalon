@@ -85,4 +85,11 @@ const productController = {
   }
 };
 
-module.exports = productController;
+module.exports = {
+  getAllProducts,
+  getProductByName,
+  createProduct,
+  updateProductByName,
+  deleteProductByName
+};
+;
