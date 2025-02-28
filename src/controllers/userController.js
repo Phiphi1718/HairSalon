@@ -17,9 +17,11 @@ const userController = {
     try {
       const { username } = req.params;
       const result = await pool.query('SELECT username, email, phone, image_url, created_at FROM users WHERE username = $1', [username]);
+
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
       }
+
       res.json(result.rows[0]);
     } catch (error) {
       console.error('Lỗi khi lấy người dùng:', error);
@@ -27,16 +29,15 @@ const userController = {
     }
   },
 
+  // Cập nhật ảnh đại diện của người dùng
   updateUserAvatar: async (req, res) => {
     try {
       const { username } = req.params;
 
-      // Kiểm tra xem người dùng có tải file lên không
       if (!req.file) {
-        return res.status(400).json({ message: 'Vui lòng chọn một ảnh để upload!' });
+        return res.status(400).json({ message: 'Không có ảnh được tải lên!' });
       }
 
-      // Lưu đường dẫn file vào database (cột image_url)
       const imageUrl = `/uploads/${req.file.filename}`;
 
       const result = await pool.query(
@@ -48,27 +49,64 @@ const userController = {
         return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
       }
 
-      res.json({ message: 'Cập nhật avatar thành công!', user: result.rows[0] });
+      res.json({ 
+        message: 'Cập nhật ảnh thành công!', 
+        image_url: `http://localhost:5000${imageUrl}`, // Trả về đường dẫn đầy đủ
+        user: result.rows[0] 
+      });
     } catch (error) {
-      console.error('❌ Lỗi khi cập nhật avatar:', error);
+      console.error('Lỗi khi cập nhật ảnh:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
 
-  // Cập nhật thông tin người dùng theo username
+  // Cập nhật thông tin người dùng
   updateUser: async (req, res) => {
     try {
       const { username } = req.params;
       const { newUsername, email, phone, image_url } = req.body;
 
-      const result = await pool.query(
-        'UPDATE users SET username = $1, email = $2, phone = $3, image_url = $4 WHERE username = $5 RETURNING *',
-        [newUsername, email, phone, image_url, username]
-      );
-
-      if (result.rows.length === 0) {
+      // Kiểm tra xem người dùng có tồn tại không
+      const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+      if (userCheck.rows.length === 0) {
         return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
       }
+
+      // Chỉ cập nhật các trường có giá trị
+      const updates = [];
+      const values = [];
+      let queryIndex = 1;
+
+      if (newUsername) {
+        updates.push(`username = $${queryIndex}`);
+        values.push(newUsername);
+        queryIndex++;
+      }
+      if (email) {
+        updates.push(`email = $${queryIndex}`);
+        values.push(email);
+        queryIndex++;
+      }
+      if (phone) {
+        updates.push(`phone = $${queryIndex}`);
+        values.push(phone);
+        queryIndex++;
+      }
+      if (image_url) {
+        updates.push(`image_url = $${queryIndex}`);
+        values.push(image_url);
+        queryIndex++;
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ message: 'Không có thông tin cần cập nhật!' });
+      }
+
+      values.push(username);
+
+      const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE username = $${queryIndex} RETURNING *`;
+
+      const result = await pool.query(updateQuery, values);
 
       res.json({ message: 'Cập nhật thành công!', user: result.rows[0] });
     } catch (error) {
