@@ -31,32 +31,33 @@ const authController = {
   // Đăng nhập
   login: async (req, res) => {
     try {
-      const { email, password } = req.body;
-      const user = await User.findByEmail(email);
+        const { username, password } = req.body; // Thay email bằng username
+        const user = await User.findByUsername(username); // Tìm user theo username
 
-      if (!user) {
-        return res.status(400).json({ message: "Tài khoản không tồn tại!" });
-      }
+        if (!user) {
+            return res.status(400).json({ message: "Tài khoản không tồn tại!" });
+        }
 
-      // So sánh mật khẩu
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ message: "Mật khẩu không chính xác!" });
-      }
+        // So sánh mật khẩu
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Mật khẩu không chính xác!" });
+        }
 
-      // Tạo token JWT
-      const token = jwt.sign(
-        { id: user.id, username: user.username, user_type_id: user.user_type_id },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
-      );
+        // Tạo token JWT
+        const token = jwt.sign(
+            { id: user.id, username: user.username, user_type_id: user.user_type_id },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
 
-      res.json({ message: "Đăng nhập thành công!", token });
+        res.json({ message: "Đăng nhập thành công!", token });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Lỗi server!" });
+        console.error(error);
+        res.status(500).json({ message: "Lỗi server!" });
     }
-  },
+},
+
 
   forgotPassword: async (req, res) => {
     try {
