@@ -12,22 +12,25 @@ exports.createReview = async (req, res) => {
 
 exports.getAllReviews = async (req, res) => {
   try {
-    const reviews = await Review.getAll();
+    const reviews = await Review.getAllWithUser();
     res.json(reviews);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Lỗi khi lấy đánh giá:", err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 };
 
 exports.getReviewsByUsername = async (req, res) => {
   try {
     const { username } = req.params;
-    const reviews = await Review.getByUsername(username);
+    const reviews = await Review.getByUsernameWithUser(username);
     res.json(reviews);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Lỗi khi lấy đánh giá theo username:", err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 };
+
 
 exports.updateReview = async (req, res) => {
   try {

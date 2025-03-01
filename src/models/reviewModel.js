@@ -10,20 +10,44 @@ const Review = {
     return result.rows[0];
   },
 
-  async getAll() {
-    const result = await pool.query('SELECT * FROM reviews;');
-    return result.rows;
-  },
+async getAllWithUser() {
+    const query = `
+      SELECT 
+        r.id, 
+        r.user_id, 
+        r.barber_id, 
+        r.rating, 
+        r.comment, 
+        r.created_at,
+        u.username,
+        COALESCE(u.image_url, '/default-avatar.png') AS image_url
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      ORDER BY r.created_at DESC
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
+},
 
-  async getByUsername(username) {
-    const result = await pool.query(
-      `SELECT r.* FROM reviews r
-       JOIN users u ON r.user_id = u.id
-       WHERE u.username = $1;`,
-      [username]
-    );
-    return result.rows;
-  },
+ async getByUsernameWithUser(username) {
+    const query = `
+      SELECT 
+        r.id, 
+        r.user_id, 
+        r.barber_id, 
+        r.rating, 
+        r.comment, 
+        r.created_at,
+        u.username,
+        COALESCE(u.image_url, '/default-avatar.png') AS image_url
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      WHERE u.username = $1
+      ORDER BY r.created_at DESC
+    `;
+    const { rows } = await pool.query(query, [username]);
+    return rows;
+},
 
   async update(id, rating, comment) {
     const result = await pool.query(

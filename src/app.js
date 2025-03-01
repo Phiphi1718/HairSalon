@@ -8,10 +8,7 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require("./routes/userRoutes");
 const reviewRoutes = require('./routes/reviewRoutes');
-
-
-
-
+const path = require("path");
 
 
 const app = express();
@@ -29,6 +26,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/orders', orderRoutes);  // Định tuyến API đơn hàng
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 

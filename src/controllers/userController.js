@@ -4,7 +4,7 @@ const userController = {
   // Lấy tất cả người dùng
   getAllUsers: async (req, res) => {
     try {
-      const result = await pool.query('SELECT username, email, phone, image_url, created_at FROM users');
+      const result = await pool.query('SELECT username, email, phone, address, image_url, created_at FROM users');
       res.json(result.rows);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách người dùng:', error);
@@ -12,11 +12,12 @@ const userController = {
     }
   },
 
+
   // Lấy người dùng theo username
   getUserByUsername: async (req, res) => {
     try {
       const { username } = req.params;
-      const result = await pool.query('SELECT username, email, phone, image_url, created_at FROM users WHERE username = $1', [username]);
+      const result = await pool.query('SELECT username, email, phone, address, image_url, created_at FROM users WHERE username = $1', [username]);
 
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
@@ -64,7 +65,7 @@ const userController = {
   updateUser: async (req, res) => {
     try {
       const { username } = req.params;
-      const { newUsername, email, phone, image_url } = req.body;
+      const { newUsername, email, phone, address, image_url } = req.body;
 
       // Kiểm tra xem người dùng có tồn tại không
       const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -90,6 +91,11 @@ const userController = {
       if (phone) {
         updates.push(`phone = $${queryIndex}`);
         values.push(phone);
+        queryIndex++;
+      }
+      if (address) {
+        updates.push(`address = $${queryIndex}`);
+        values.push(address);
         queryIndex++;
       }
       if (image_url) {
