@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.header("Authorization");
-    
     console.log("Received Authorization Header:", authHeader); // Debug
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -22,7 +21,7 @@ const authMiddleware = (req, res, next) => {
         console.log("Decoded Token:", decoded); // Debug token data
         console.log("Token Expiration:", new Date(decoded.exp * 1000).toLocaleString()); // Log thời gian hết hạn
 
-        req.user = decoded;
+        req.user = decoded; // Gán thông tin người dùng vào req.user
         next();
     } catch (error) {
         console.error("JWT Verify Error:", error); // Ghi log chi tiết lỗi
@@ -49,3 +48,5 @@ const isAdmin = (req, res, next) => {
 };
 
 module.exports = { authMiddleware, isAdmin };
+
+
