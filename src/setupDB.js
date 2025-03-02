@@ -1,18 +1,18 @@
 const pool = require("./db");
 
-const createTables = async () => {
+const alterTable = async () => {
   try {
     await pool.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS address TEXT;
+      ALTER COLUMN token TYPE TEXT USING token::TEXT;
     `);
-    console.log("✅ Đã thêm cột 'address' vào bảng 'users' (nếu chưa tồn tại)!");
+    console.log("✅ Đã đổi kiểu dữ liệu của cột 'token' thành TEXT!");
   } catch (error) {
-    console.error("❌ Lỗi khi thêm cột:", error);
+    console.error("❌ Lỗi khi thay đổi kiểu dữ liệu:", error);
   } finally {
     pool.end(); // Đóng kết nối sau khi chạy xong
   }
 };
 
-// Chạy lệnh tạo bảng
-createTables();
+// Chạy lệnh ALTER TABLE
+alterTable();

@@ -1,4 +1,6 @@
 const pool = require('../db');
+const cloudinary = require('../config/cloudinary'); // Import Cloudinary
+
 
 const userController = {
   // Lấy tất cả người dùng
@@ -39,22 +41,39 @@ const userController = {
         return res.status(400).json({ message: 'Không có ảnh được tải lên!' });
       }
 
-      const imageUrl = `/uploads/${req.file.filename}`;
+      // Upload ảnh lên Cloudinary
+      const result = await cloudinary.uploader.upload_stream(
+        { folder: "avatars" },
+        async (error, cloudinaryResult) => {
+          if (error) {
+            console.error('Lỗi khi upload lên Cloudinary:', error);
+            return res.status(500).json({ message: 'Lỗi khi upload ảnh' });
+          }
 
-      const result = await pool.query(
-        'UPDATE users SET image_url = $1 WHERE username = $2 RETURNING *',
-        [imageUrl, username]
+          // Lấy URL từ Cloudinary
+          const imageUrl = cloudinaryResult.secure_url;
+
+          // Cập nhật database với URL mới từ Cloudinary
+          const updateResult = await pool.query(
+            'UPDATE users SET image_url = $1 WHERE username = $2 RETURNING *',
+            [imageUrl, username]
+          );
+
+          if (updateResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
+          }
+
+          res.json({ 
+            message: 'Cập nhật ảnh thành công!', 
+            image_url: imageUrl, // Trả về link Cloudinary
+            user: updateResult.rows[0] 
+          });
+        }
       );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
-      }
-
-      res.json({ 
-        message: 'Cập nhật ảnh thành công!', 
-        image_url: `http://localhost:5000${imageUrl}`, // Trả về đường dẫn đầy đủ
-        user: result.rows[0] 
-      });
+      // Gửi file từ buffer lên Cloudinary
+      result.end(req.file.buffer);
+      
     } catch (error) {
       console.error('Lỗi khi cập nhật ảnh:', error);
       res.status(500).json({ message: 'Lỗi server' });

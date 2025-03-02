@@ -13,7 +13,7 @@ const upload = multer({ storage });
 // Các routes khác
 router.get('/all', authMiddleware, userController.getAllUsers);
 router.get('/:username', authMiddleware, userController.getUserByUsername);
-router.put('/update/:username', authMiddleware, isAdmin, userController.updateUser);
+router.put('/update/:username', authMiddleware, userController.updateUser);
 router.delete('/delete/:username', authMiddleware, isAdmin, userController.deleteUser);
 
 // ✅ Route cập nhật ảnh avatar (Dùng Cloudinary)
