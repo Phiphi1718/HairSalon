@@ -12,21 +12,26 @@ const authMiddleware = (req, res, next) => {
     const token = authHeader.split(" ")[1]; // Lấy token thực
     console.log("Extracted Token:", token); // Debug
 
+    if (!process.env.JWT_SECRET) {
+        console.error("JWT_SECRET chưa được cấu hình trong .env!");
+        return res.status(500).json({ message: "Lỗi server: Thiếu JWT_SECRET" });
+    }
+
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         console.log("Decoded Token:", decoded); // Debug token data
 
-        // Kiểm tra nếu token đã hết hạn
-        const currentTime = Math.floor(Date.now() / 1000); // Chuyển sang giây
-        if (decoded.exp < currentTime) {
-            return res.status(401).json({ message: "Token đã hết hạn!" });
-        }
-
         req.user = decoded;
         next();
     } catch (error) {
-        console.error("JWT Verify Error:", error.message);
-        res.status(401).json({ message: "Token không hợp lệ!" });
+        if (error instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({ message: "Token đã hết hạn!" });
+        } else if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({ message: "Token không hợp lệ!" });
+        } else {
+            console.error("JWT Verify Error:", error.message);
+            return res.status(500).json({ message: "Lỗi xác thực token!" });
+        }
     }
 };
 
@@ -37,11 +42,4 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-const authenticate = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ message: "Bạn cần đăng nhập!" });
-    }
-    next();
-};
-
-module.exports = { authMiddleware, isAdmin, authenticate };
+module.exports = { authMiddleware, isAdmin };
