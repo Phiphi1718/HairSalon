@@ -54,37 +54,6 @@ const getAppointmentsByUsername = async (req, res) => {
   }
 };
 
-
-const getAppointmentsByUsername = async (req, res) => {
-  try {
-    // Lấy username từ query parameters hoặc từ token nếu cần
-    const { username } = req.params;
-
-    // Tìm user_id dựa vào username
-    const user = await User.findOne({ where: { username: username } });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User không tồn tại.' });
-    }
-
-    // Lấy tất cả các lịch hẹn của user này
-    const appointments = await Appointment.findAll({
-      where: { user_id: user.id },
-      order: [['appointment_date', 'ASC']], // Sắp xếp theo ngày
-    });
-
-    if (appointments.length === 0) {
-      return res.status(404).json({ message: 'Không có lịch hẹn nào.' });
-    }
-
-    // Trả về danh sách lịch hẹn
-    res.json(appointments);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Lỗi server' });
-  }
-};
-
 // Thêm lịch hẹn mới (Ai cũng có thể đặt)
 const createAppointment = async (req, res) => {
   const { user_name, barber_name, service_name, appointment_date, status } = req.body;
