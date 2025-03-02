@@ -1,5 +1,8 @@
 const pool = require('../db');
 const { isAdmin } = require('../middlewares/authMiddleware');
+const User = require('../models/userModel');  
+const Appointment = require('../models/Appointment');
+
 
 // Lấy tất cả lịch hẹn (Chỉ Admin mới được xem)
 const getAllAppointments = async (req, res) => {
@@ -24,6 +27,33 @@ const getAllAppointments = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi lấy danh sách lịch hẹn', error });
   }
 };
+
+const getAppointmentsByUsername = async (req, res) => {
+  const { username } = req.params;
+  
+  // Giả sử bạn đã có phương thức để lấy user_id từ username
+  try {
+    const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    const userId = userResult.rows[0].id;
+
+    // Tìm các cuộc hẹn theo userId
+    const appointments = await Appointment.findByUserId(userId);
+
+    if (appointments.length === 0) {
+      return res.status(404).json({ message: 'Không có cuộc hẹn nào' });
+    }
+
+    res.json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi khi lấy cuộc hẹn' });
+  }
+};
+
 
 const getAppointmentsByUsername = async (req, res) => {
   try {
