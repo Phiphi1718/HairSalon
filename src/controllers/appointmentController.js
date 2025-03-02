@@ -1,7 +1,7 @@
 const pool = require('../db');
-const { isAdmin } = require('../middlewares/authMiddleware');
-const User = require('../models/userModel');  
-const Appointment = require('../models/Appointment');
+const User = require('../models/userModel');  // Điều chỉnh đường dẫn nếu cần thiết
+const Appointment = require('../models/Appointment'); // Đảm bảo bạn đã tạo model Appointment
+
 
 
 // Lấy tất cả lịch hẹn (Chỉ Admin mới được xem)
@@ -14,7 +14,8 @@ const getAllAppointments = async (req, res) => {
         b.full_name AS barber_name, 
         s.service_name, 
         a.appointment_date, 
-        a.status
+        a.status,
+        a.total_amount  -- Lấy total_amount
       FROM appointments a
       JOIN users u ON a.user_id = u.id
       JOIN barbers b ON a.barber_id = b.id
@@ -27,6 +28,7 @@ const getAllAppointments = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi lấy danh sách lịch hẹn', error });
   }
 };
+
 
 const getAppointmentsByUsername = async (req, res) => {
   const { username } = req.params;
@@ -54,6 +56,8 @@ const getAppointmentsByUsername = async (req, res) => {
   }
 };
 
+
+
 // Thêm lịch hẹn mới (Ai cũng có thể đặt)
 const createAppointment = async (req, res) => {
   const { user_name, barber_name, service_name, appointment_date, status } = req.body;
@@ -62,7 +66,7 @@ const createAppointment = async (req, res) => {
     // Tìm ID của user, barber, service dựa trên name
     const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
     const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
-    const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
+    const service = await pool.query('SELECT id, price FROM services WHERE service_name = $1', [service_name]);
 
     if (!user.rows.length || !barber.rows.length || !service.rows.length) {
       return res.status(404).json({ message: 'Không tìm thấy user, barber hoặc service' });
@@ -71,11 +75,15 @@ const createAppointment = async (req, res) => {
     const user_id = user.rows[0].id;
     const barber_id = barber.rows[0].id;
     const service_id = service.rows[0].id;
+    const price = service.rows[0].price;
+
+    // Tính toán tổng tiền
+    const total_amount = price;  // Giả sử là giá dịch vụ
 
     // Thêm lịch hẹn
     const result = await pool.query(
-      'INSERT INTO appointments (user_id, barber_id, service_id, appointment_date, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [user_id, barber_id, service_id, appointment_date, status || 'pending']
+      'INSERT INTO appointments (user_id, barber_id, service_id, appointment_date, status, total_amount) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [user_id, barber_id, service_id, appointment_date, status || 'pending', total_amount]
     );
 
     res.status(201).json({ message: 'Lịch hẹn đã được tạo', appointment: result.rows[0] });
@@ -85,6 +93,7 @@ const createAppointment = async (req, res) => {
   }
 };
 
+
 // Cập nhật lịch hẹn (Chỉ Admin)
 const updateAppointment = async (req, res) => {
   const { user_name, barber_name, service_name, appointment_date, status } = req.body;
@@ -92,7 +101,7 @@ const updateAppointment = async (req, res) => {
   try {
     const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
     const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
-    const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
+    const service = await pool.query('SELECT id, price FROM services WHERE service_name = $1', [service_name]);
 
     if (!user.rows.length || !barber.rows.length || !service.rows.length) {
       return res.status(404).json({ message: 'Không tìm thấy user, barber hoặc service' });
@@ -101,13 +110,17 @@ const updateAppointment = async (req, res) => {
     const user_id = user.rows[0].id;
     const barber_id = barber.rows[0].id;
     const service_id = service.rows[0].id;
+    const price = service.rows[0].price;
+
+    // Tính toán lại tổng tiền
+    const total_amount = price;
 
     const result = await pool.query(
       `UPDATE appointments
-       SET appointment_date = $4, status = $5
+       SET appointment_date = $4, status = $5, total_amount = $6
        WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
        RETURNING *`,
-      [user_id, barber_id, service_id, appointment_date, status]
+      [user_id, barber_id, service_id, appointment_date, status, total_amount]
     );
 
     if (!result.rows.length) {
@@ -120,6 +133,7 @@ const updateAppointment = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi cập nhật lịch hẹn', error });
   }
 };
+
 
 // Xóa lịch hẹn (Chỉ Admin)
 const deleteAppointment = async (req, res) => {
@@ -155,6 +169,7 @@ const deleteAppointment = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi xóa lịch hẹn', error });
   }
 };
+
 
 module.exports = {
   getAllAppointments,
