@@ -4,17 +4,19 @@ const {
   createAppointment,
   updateAppointment,
   deleteAppointment,
-  getAppointmentsByUsername
+  getAppointmentsByUsername 
 } = require('../controllers/appointmentController');
 
 const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.get('/:username', authMiddleware,getAppointmentsByUsername );
+// Put specific routes BEFORE parameterized routes
 router.get('/all', authMiddleware, getAllAppointments);  // Chỉ admin được xem
+// Then put the parameterized route after
+router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
 router.put('/update', authMiddleware, isAdmin, updateAppointment);  // Chỉ admin có thể cập nhật
-router.delete('/delete', authMiddleware, deleteAppointment);  // Chỉ admin có thể xóa
+router.delete('/delete', authMiddleware, isAdmin, deleteAppointment);  // Chỉ admin có thể xóa
 
 module.exports = router;
