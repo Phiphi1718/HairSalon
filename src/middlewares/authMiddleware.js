@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.header("Authorization");
-
+    
     console.log("Received Authorization Header:", authHeader); // Debug
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -20,21 +20,24 @@ const authMiddleware = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         console.log("Decoded Token:", decoded); // Debug token data
+        console.log("Token Expiration:", new Date(decoded.exp * 1000).toLocaleString()); // Log thời gian hết hạn
 
         req.user = decoded;
         next();
     } catch (error) {
+        console.error("JWT Verify Error:", error); // Ghi log chi tiết lỗi
+
         if (error instanceof jwt.TokenExpiredError) {
-            return res.status(401).json({ message: "Token đã hết hạn!" });
+            return res.status(401).json({ message: "Token đã hết hạn! Vui lòng đăng nhập lại." });
         } else if (error instanceof jwt.JsonWebTokenError) {
             return res.status(401).json({ message: "Token không hợp lệ!" });
         } else {
-            console.error("JWT Verify Error:", error.message);
-            return res.status(500).json({ message: "Lỗi xác thực token!" });
+            return res.status(500).json({ message: "Lỗi xác thực token!", error: error.message });
         }
     }
 };
 
+// Middleware kiểm tra quyền Admin
 const isAdmin = (req, res, next) => {
     if (!req.user || req.user.user_type_id !== 1) {
         return res.status(403).json({ message: "Bạn không có quyền admin!" });
