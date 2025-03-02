@@ -39,7 +39,10 @@ const authMiddleware = (req, res, next) => {
 
 // Middleware kiểm tra quyền Admin
 const isAdmin = (req, res, next) => {
-    if (!req.user || req.user.user_type_id !== 1) {
+    console.log("User info in isAdmin middleware:", req.user); // Debug
+    
+    // Kiểm tra xem username có phải 'admin' không
+    if (!req.user || req.user.username !== 'admin') {
         return res.status(403).json({ message: "Bạn không có quyền admin!" });
     }
     next();
