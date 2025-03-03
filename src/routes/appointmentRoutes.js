@@ -17,6 +17,6 @@ router.get('/all', authMiddleware, getAllAppointments);  // Chỉ admin được
 router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
 router.put('/update', authMiddleware, isAdmin, updateAppointment);  // Chỉ admin có thể cập nhật
-router.delete('/delete', authMiddleware, isAdmin, deleteAppointment);  // Chỉ admin có thể xóa
+router.delete('/delete', authMiddleware, deleteAppointment);  // Chỉ admin có thể xóa
 
 module.exports = router;
