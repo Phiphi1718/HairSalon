@@ -47,7 +47,6 @@ const getAppointmentsByUsername = async (req, res) => {
         a.status, 
         a.total_amount,
         a.created_at,
-        a.updated_at,
         (SELECT COUNT(*) > 0 FROM reviews r WHERE r.user_id = a.user_id AND r.barber_id = a.barber_id) as has_review
       FROM 
         appointments a
