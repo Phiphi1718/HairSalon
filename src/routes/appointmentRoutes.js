@@ -4,7 +4,8 @@ const {
   createAppointment,
   updateAppointment,
   deleteAppointment,
-  getAppointmentsByUsername 
+  getAppointmentsByUsername,
+  addReviewToAppointment
 } = require('../controllers/appointmentController');
 
 const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
@@ -18,5 +19,7 @@ router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
 router.put('/update', authMiddleware, isAdmin, updateAppointment);  // Chỉ admin có thể cập nhật
 router.delete('/:appointment_id',authMiddleware, deleteAppointment);
+router.post('/appointments/:appointment_id/review', authMiddleware, addReviewToAppointment);
+
 
 module.exports = router;
