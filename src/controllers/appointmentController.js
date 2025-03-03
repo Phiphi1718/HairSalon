@@ -25,29 +25,54 @@ const getAllAppointments = async (req, res) => {
 const getAppointmentsByUsername = async (req, res) => {
   const { username } = req.params;
   
-  // Giả sử bạn đã có phương thức để lấy user_id từ username
   try {
+    // Lấy user_id từ username
     const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
-
+    
     const userId = userResult.rows[0].id;
-
-    // Tìm các cuộc hẹn theo userId
-    const appointments = await Appointment.findByUserId(userId);
-
-    if (appointments.length === 0) {
+    
+    // Câu query JOIN để lấy thông tin đầy đủ về cuộc hẹn, barber và service
+    const appointmentsQuery = `
+      SELECT 
+        a.id, 
+        a.user_id, 
+        a.barber_id, 
+        b.name as barber_name, 
+        a.service_id, 
+        s.name as service_name,
+        a.appointment_date, 
+        a.status, 
+        a.total_amount,
+        a.created_at,
+        a.updated_at,
+        (SELECT COUNT(*) > 0 FROM reviews r WHERE r.user_id = a.user_id AND r.barber_id = a.barber_id) as has_review
+      FROM 
+        appointments a
+      JOIN 
+        barbers b ON a.barber_id = b.id
+      JOIN 
+        services s ON a.service_id = s.id
+      WHERE 
+        a.user_id = $1
+      ORDER BY 
+        a.appointment_date DESC
+    `;
+    
+    const result = await pool.query(appointmentsQuery, [userId]);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Không có cuộc hẹn nào' });
     }
-
-    res.json(appointments);
+    
+    res.json(result.rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Lỗi khi lấy cuộc hẹn' });
+    console.error('Chi tiết lỗi:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy cuộc hẹn', error: error.message });
   }
 };
-
 
 
 // Thêm lịch hẹn mới (Ai cũng có thể đặt)
