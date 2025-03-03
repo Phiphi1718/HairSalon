@@ -19,7 +19,7 @@ router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
 router.put('/update', authMiddleware, isAdmin, updateAppointment);  // Chỉ admin có thể cập nhật
 router.delete('/:appointment_id',authMiddleware, deleteAppointment);
-router.post('/appointments/:appointment_id/review', authMiddleware, addReviewToAppointment);
+router.post('/:appointment_id/review', authMiddleware, addReviewToAppointment);
 
 
 module.exports = router;
