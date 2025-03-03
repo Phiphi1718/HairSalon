@@ -127,28 +127,14 @@ const updateAppointment = async (req, res) => {
 };
 
 
-// Xóa lịch hẹn (Chỉ Admin)
+// Xóa lịch hẹn theo ID (Chỉ Admin)
 const deleteAppointment = async (req, res) => {
-  const { user_name, barber_name, service_name } = req.body;
+  const { appointment_id } = req.params; // Lấy ID từ URL
 
   try {
-    const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
-    const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
-    const service = await pool.query('SELECT id FROM services WHERE service_name = $1', [service_name]);
-
-    if (!user.rows.length || !barber.rows.length || !service.rows.length) {
-      return res.status(404).json({ message: 'Không tìm thấy user, barber hoặc service' });
-    }
-
-    const user_id = user.rows[0].id;
-    const barber_id = barber.rows[0].id;
-    const service_id = service.rows[0].id;
-
     const result = await pool.query(
-      `DELETE FROM appointments
-       WHERE user_id = $1 AND barber_id = $2 AND service_id = $3
-       RETURNING *`,
-      [user_id, barber_id, service_id]
+      `DELETE FROM appointments WHERE id = $1 RETURNING *`,
+      [appointment_id]
     );
 
     if (!result.rows.length) {
@@ -161,6 +147,7 @@ const deleteAppointment = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi xóa lịch hẹn', error });
   }
 };
+
 
 
 module.exports = {
