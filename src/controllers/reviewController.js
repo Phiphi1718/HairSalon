@@ -2,7 +2,18 @@ const Review = require('../models/reviewModel');
 
 exports.createReview = async (req, res) => {
   try {
-    const { user_id, rating, comment } = req.body;
+    const { username, rating, comment } = req.body;
+
+    // Tìm user_id từ username
+    const userQuery = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Người dùng không tồn tại!" });
+    }
+
+    const user_id = userQuery.rows[0].id;
+
+    // Tạo review
     const review = await Review.create(user_id, rating, comment);
     res.status(201).json(review);
   } catch (err) {
