@@ -1,21 +1,20 @@
 const pool = require('../db');
 
 const Review = {
-  async create(user_id, barber_id, rating, comment) {
+  async create(user_id, rating, comment) {
     const result = await pool.query(
-      `INSERT INTO reviews (user_id, barber_id, rating, comment)
-       VALUES ($1, $2, $3, $4) RETURNING *;`,
-      [user_id, barber_id, rating, comment]
+      `INSERT INTO reviews (user_id, rating, comment)
+       VALUES ($1, $2, $3) RETURNING *;`,
+      [user_id, rating, comment]
     );
     return result.rows[0];
   },
 
-async getAllWithUser() {
+  async getAllWithUser() {
     const query = `
       SELECT 
         r.id, 
         r.user_id, 
-        r.barber_id, 
         r.rating, 
         r.comment, 
         r.created_at,
@@ -27,14 +26,13 @@ async getAllWithUser() {
     `;
     const { rows } = await pool.query(query);
     return rows;
-},
+  },
 
- async getByUsernameWithUser(username) {
+  async getByUsernameWithUser(username) {
     const query = `
       SELECT 
         r.id, 
         r.user_id, 
-        r.barber_id, 
         r.rating, 
         r.comment, 
         r.created_at,
@@ -47,7 +45,7 @@ async getAllWithUser() {
     `;
     const { rows } = await pool.query(query, [username]);
     return rows;
-},
+  },
 
   async update(id, rating, comment) {
     const result = await pool.query(
