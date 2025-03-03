@@ -40,9 +40,9 @@ const getAppointmentsByUsername = async (req, res) => {
         a.id, 
         a.user_id, 
         a.barber_id, 
-        b.name as barber_name, 
+        b.full_name as barber_name, -- Sửa lại cột 'name' thành 'full_name'
         a.service_id, 
-        s.name as service_name,
+        s.service_name as service_name, -- Sửa lại cột 'name' thành 'service_name'
         a.appointment_date, 
         a.status, 
         a.total_amount,
@@ -73,6 +73,7 @@ const getAppointmentsByUsername = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi lấy cuộc hẹn', error: error.message });
   }
 };
+
 
 
 // Thêm lịch hẹn mới (Ai cũng có thể đặt)
