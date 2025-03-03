@@ -2,8 +2,8 @@ const Review = require('../models/reviewModel');
 
 exports.createReview = async (req, res) => {
   try {
-    const { user_id, barber_id, rating, comment } = req.body;
-    const review = await Review.create(user_id, barber_id, rating, comment);
+    const { user_id, rating, comment } = req.body;
+    const review = await Review.create(user_id, rating, comment);
     res.status(201).json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,7 +30,6 @@ exports.getReviewsByUsername = async (req, res) => {
     res.status(500).json({ error: "Lỗi server" });
   }
 };
-
 
 exports.updateReview = async (req, res) => {
   try {
