@@ -1,4 +1,5 @@
 const Review = require('../models/reviewModel');
+const pool = require('../db');
 
 exports.createReview = async (req, res) => {
   try {
