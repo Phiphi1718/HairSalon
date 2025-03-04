@@ -45,7 +45,7 @@ const authController = {
         if (!isMatch) return res.status(401).json({ message: "Mật khẩu không chính xác!" });
 
         const token = jwt.sign(
-            { id: user.id, username: user.username },
+            { id: user.id, username: user.username, user_type_id: user.user_type_id },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
