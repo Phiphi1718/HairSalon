@@ -2,11 +2,8 @@ const Product = require('../models/productModel');
 
 const productController = {
   // 🔹 Lấy tất cả sản phẩm (Chỉ khách hàng)
-  getAllProducts: async (req, res) => {
+getAllProducts: async (req, res) => {
     try {
-      if (!req.user || req.user.role !== 'customer') {
-        return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
-      }
       const products = await Product.getAll();
       res.status(200).json(products);
     } catch (error) {
@@ -15,12 +12,9 @@ const productController = {
     }
   },
 
-  // 🔹 Lấy sản phẩm theo tên (Chỉ khách hàng)
+  // 🔹 Lấy sản phẩm theo tên (Mọi người đều truy cập được)
   getProductByName: async (req, res) => {
     try {
-      if (!req.user || req.user.role !== 'customer') {
-        return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
-      }
       const { name } = req.params;
       const product = await Product.getByName(name);
       if (!product) return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
