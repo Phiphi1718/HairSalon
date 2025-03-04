@@ -1,6 +1,6 @@
 const pool = require('../db');
-const cloudinary = require('../config/cloudinary'); // Import Cloudinary
-
+const cloudinary = require('../config/cloudinary');
+const fs = require('fs'); // Thêm fs để xóa file tạm
 
 const userController = {
   // Lấy tất cả người dùng
@@ -13,7 +13,6 @@ const userController = {
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
-
 
   // Lấy người dùng theo username
   getUserByUsername: async (req, res) => {
@@ -41,40 +40,50 @@ const userController = {
         return res.status(400).json({ message: 'Không có ảnh được tải lên!' });
       }
 
-      // Upload ảnh lên Cloudinary
-      const result = await cloudinary.uploader.upload_stream(
-        { folder: "avatars" },
-        async (error, cloudinaryResult) => {
-          if (error) {
-            console.error('Lỗi khi upload lên Cloudinary:', error);
-            return res.status(500).json({ message: 'Lỗi khi upload ảnh' });
-          }
+      // Lấy thông tin ảnh cũ từ database để xóa sau
+      const userResult = await pool.query('SELECT image_url FROM users WHERE username = $1', [username]);
+      if (userResult.rows.length === 0) {
+        fs.unlinkSync(req.file.path); // Xóa file tạm nếu user không tồn tại
+        return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
+      }
+      const oldImageUrl = userResult.rows[0].image_url;
 
-          // Lấy URL từ Cloudinary
-          const imageUrl = cloudinaryResult.secure_url;
+      // Upload ảnh mới lên Cloudinary
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "avatars",
+        overwrite: true, // Ghi đè nếu trùng tên (tùy chọn)
+      });
 
-          // Cập nhật database với URL mới từ Cloudinary
-          const updateResult = await pool.query(
-            'UPDATE users SET image_url = $1 WHERE username = $2 RETURNING *',
-            [imageUrl, username]
-          );
+      // Xóa file tạm sau khi upload
+      fs.unlinkSync(req.file.path);
 
-          if (updateResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
-          }
+      // Xóa ảnh cũ trên Cloudinary nếu tồn tại
+      if (oldImageUrl) {
+        const publicId = oldImageUrl.split('/').pop().split('.')[0]; // Lấy public_id từ URL
+        await cloudinary.uploader.destroy(`avatars/${publicId}`).catch((err) => {
+          console.error('Lỗi khi xóa ảnh cũ trên Cloudinary:', err);
+        });
+      }
 
-          res.json({ 
-            message: 'Cập nhật ảnh thành công!', 
-            image_url: imageUrl, // Trả về link Cloudinary
-            user: updateResult.rows[0] 
-          });
-        }
+      // Lấy URL từ Cloudinary
+      const imageUrl = uploadResult.secure_url;
+
+      // Cập nhật database với URL mới
+      const updateResult = await pool.query(
+        'UPDATE users SET image_url = $1 WHERE username = $2 RETURNING *',
+        [imageUrl, username]
       );
 
-      // Gửi file từ buffer lên Cloudinary
-      result.end(req.file.buffer);
-      
+      res.json({ 
+        message: 'Cập nhật ảnh thành công!', 
+        image_url: imageUrl, 
+        user: updateResult.rows[0] 
+      });
     } catch (error) {
+      // Xóa file tạm nếu có lỗi
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       console.error('Lỗi khi cập nhật ảnh:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
@@ -86,13 +95,11 @@ const userController = {
       const { username } = req.params;
       const { newUsername, email, phone, address, image_url } = req.body;
 
-      // Kiểm tra xem người dùng có tồn tại không
       const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
       if (userCheck.rows.length === 0) {
         return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
       }
 
-      // Chỉ cập nhật các trường có giá trị
       const updates = [];
       const values = [];
       let queryIndex = 1;
