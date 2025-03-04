@@ -38,13 +38,12 @@ const authMiddleware = (req, res, next) => {
 
 // Middleware kiểm tra quyền Admin
 const isAdmin = (req, res, next) => {
-    console.log("User info in isAdmin middleware:", req.user); // Debug
-    
-    // Kiểm tra xem username có phải 'admin' không
-    if (!req.user || req.user.username !== 'admin') {
-        return res.status(403).json({ message: "Bạn không có quyền admin!" });
-    }
-    next();
+  console.log('User info in isAdmin middleware:', req.user);
+  if (!req.user || req.user.user_type_id !== 1) 
+  { 
+    return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+  }
+  next();
 };
 
 module.exports = { authMiddleware, isAdmin };
