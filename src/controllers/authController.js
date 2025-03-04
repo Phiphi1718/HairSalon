@@ -56,8 +56,8 @@ const authController = {
             // Lưu refresh token vào cookie
             res.cookie("refreshToken", refreshToken, {
                 httpOnly: true,
-                secure: true, // Đặt thành true nếu dùng HTTPS
-                sameSite: "Strict",
+                secure: false, // Đặt thành true nếu dùng HTTPS
+                sameSite: "Lax",
                 maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
             });
 
