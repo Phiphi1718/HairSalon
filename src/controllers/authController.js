@@ -29,45 +29,48 @@ const authController = {
   },
 
   // Đăng nhập
-  login: async (req, res) => {
-        try {
-            const { username, password } = req.body;
-            const user = await User.findByUsername(username);
+ login: async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        console.log('Request body:', req.body); // Log dữ liệu gửi từ frontend
 
-            if (!user) return res.status(400).json({ message: "Tài khoản không tồn tại!" });
+        const user = await User.findByUsername(username);
+        console.log('User found:', user); // Log kết quả tìm user
 
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) return res.status(401).json({ message: "Mật khẩu không chính xác!" });
+        if (!user) return res.status(400).json({ message: "Tài khoản không tồn tại!" });
 
-            // Tạo token (hết hạn trong 1 giờ)
-            const token = jwt.sign(
-                { id: user.id, username: user.username },
-                process.env.JWT_SECRET,
-                { expiresIn: "1h" }
-            );
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match:', isMatch); // Log kết quả so sánh password
 
-            // Tạo refresh token (hết hạn trong 7 ngày)
-            const refreshToken = jwt.sign(
-                { id: user.id },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: "7d" }
-            );
+        if (!isMatch) return res.status(401).json({ message: "Mật khẩu không chính xác!" });
 
-            // Lưu refresh token vào cookie
-            res.cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: false, // Đặt thành true nếu dùng HTTPS
-                sameSite: "Lax",
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
-            });
+        const token = jwt.sign(
+            { id: user.id, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+        console.log('Token created:', token); // Log token
 
-            res.json({ message: "Đăng nhập thành công!", token });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Lỗi server!" });
-        }
-    },
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: "7d" }
+        );
+        console.log('Refresh token created:', refreshToken); // Log refresh token
 
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "Lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.json({ message: "Đăng nhập thành công!", token });
+    } catch (error) {
+        console.error('Login error:', error.stack); // In stack trace đầy đủ
+        res.status(500).json({ message: "Lỗi server!", error: error.message });
+    }
+},
     // Làm mới token khi hết hạn
     refreshToken: async (req, res) => {
         try {
