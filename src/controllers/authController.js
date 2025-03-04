@@ -47,7 +47,7 @@ const authController = {
         const token = jwt.sign(
             { id: user.id, username: user.username, user_type_id: user.user_type_id },
             process.env.JWT_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "1m" }
         );
         console.log('Token created:', token); // Log token
 
