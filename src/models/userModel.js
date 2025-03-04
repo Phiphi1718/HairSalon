@@ -14,7 +14,7 @@ const User = {
   // 🟢 Tìm user theo username (ĐÃ SỬA: Lấy `image_url`, `address`)
   findByUsername: async (username) => {
     const result = await pool.query(
-      `SELECT id, username, email, password, phone, address, image_url, created_at 
+      `SELECT id, user_type_id, username, email, password, phone, address, image_url, created_at 
        FROM users WHERE username = $1`, 
       [username]
     );
