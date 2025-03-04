@@ -13,11 +13,7 @@ const path = require("path");
 
 const app = express();
 
-// Middleware
-app.use(cors({
-    origin: "http://localhost:3001", // Đổi thành domain frontend của bạn
-    credentials: true // Quan trọng để gửi cookie
-}));          // Cho phép CORS
+app.use(cors()); 
 app.use(express.json());   // Parse JSON body
 
 // Routes
