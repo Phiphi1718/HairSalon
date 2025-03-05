@@ -5,13 +5,16 @@ const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 exports.createOrder = async (req, res) => {
   try {
     const { items, payment_method } = req.body;
-    const user_id = req.user.id; // Lấy user_id từ token
+    const user_id = req.user.id;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'Danh sách sản phẩm không được để trống' });
     }
+    const validPaymentMethods = ['cash', 'card'];
+    if (payment_method && !validPaymentMethods.includes(payment_method)) {
+      return res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ' });
+    }
 
-    // Tính tổng tiền
     let totalAmount = 0;
     for (let item of items) {
       const productResult = await pool.query('SELECT id, price FROM products WHERE name = $1', [item.product_name]);
@@ -24,14 +27,12 @@ exports.createOrder = async (req, res) => {
       totalAmount += price * item.quantity;
     }
 
-    // Tạo đơn hàng với payment_method
     const orderResult = await pool.query(
       'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING id',
       [user_id, totalAmount, 'pending', payment_method || 'cash']
     );
     const order_id = orderResult.rows[0].id;
 
-    // Thêm sản phẩm vào order_items
     for (let item of items) {
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)',
@@ -50,18 +51,20 @@ exports.createOrder = async (req, res) => {
 exports.createReview = async (req, res) => {
   try {
     const { order_id, product_id, rating, comment } = req.body;
-    const user_id = req.user.id; // Lấy user_id từ token
+    const user_id = req.user.id;
 
-    // Kiểm tra xem đơn hàng có tồn tại và thuộc về user không
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Điểm đánh giá phải từ 1 đến 5' });
+    }
+
     const orderCheck = await pool.query(
       'SELECT id FROM orders WHERE id = $1 AND user_id = $2 AND status = $3',
-      [order_id, user_id, 'completed'] // Chỉ cho phép đánh giá khi đơn hàng hoàn thành
+      [order_id, user_id, 'completed']
     );
     if (orderCheck.rowCount === 0) {
       return res.status(400).json({ message: 'Đơn hàng không tồn tại hoặc chưa hoàn thành' });
     }
 
-    // Kiểm tra xem sản phẩm có trong đơn hàng không
     const itemCheck = await pool.query(
       'SELECT id FROM order_items WHERE order_id = $1 AND product_id = $2',
       [order_id, product_id]
@@ -70,7 +73,6 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ message: 'Sản phẩm không thuộc đơn hàng này' });
     }
 
-    // Kiểm tra xem đã đánh giá sản phẩm này trong đơn hàng chưa
     const reviewCheck = await pool.query(
       'SELECT id FROM revieworder WHERE user_id = $1 AND order_id = $2 AND product_id = $3',
       [user_id, order_id, product_id]
@@ -79,7 +81,6 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ message: 'Bạn đã đánh giá sản phẩm này trong đơn hàng này rồi' });
     }
 
-    // Thêm đánh giá vào bảng revieworder
     await pool.query(
       'INSERT INTO revieworder (user_id, product_id, order_id, rating, comment) VALUES ($1, $2, $3, $4, $5)',
       [user_id, product_id, order_id, rating, comment || '']
@@ -128,7 +129,7 @@ exports.getAllOrders = [authMiddleware, isAdmin, async (req, res) => {
 // 🟡 Lấy danh sách đơn hàng của user (KHÁCH HÀNG)
 exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
   try {
-    const user_id = req.user.id; // Lấy user_id từ token
+    const user_id = req.user.id;
 
     const result = await pool.query(`
       SELECT o.id, o.total_amount, o.status, o.created_at, o.payment_method,
@@ -186,11 +187,8 @@ exports.deleteOrder = [authMiddleware, isAdmin, async (req, res) => {
   try {
     const { order_id } = req.body;
 
-    // Xóa đánh giá liên quan trước (từ bảng revieworder)
     await pool.query('DELETE FROM revieworder WHERE order_id = $1', [order_id]);
-    // Xóa chi tiết đơn hàng
     await pool.query('DELETE FROM order_items WHERE order_id = $1', [order_id]);
-    // Xóa đơn hàng
     const result = await pool.query('DELETE FROM orders WHERE id = $1 RETURNING *', [order_id]);
 
     if (result.rowCount === 0) {
@@ -204,6 +202,26 @@ exports.deleteOrder = [authMiddleware, isAdmin, async (req, res) => {
   }
 }];
 
+// 🟡 Lấy đánh giá theo sản phẩm (Công khai)
+exports.getReviewsByProduct = async (req, res) => {
+  try {
+    const { product_id } = req.params;
+
+    const result = await pool.query(`
+      SELECT r.id, r.rating, r.comment, r.created_at, u.username AS user_name
+      FROM revieworder r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.product_id = $1
+      ORDER BY r.created_at DESC
+    `, [product_id]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Lỗi khi lấy đánh giá theo sản phẩm:', err);
+    res.status(500).json({ message: 'Lỗi máy chủ', error: err.message });
+  }
+};
+
 module.exports = {
   createOrder: exports.createOrder,
   createReview: exports.createReview,
@@ -211,4 +229,5 @@ module.exports = {
   getOrdersByUsername: exports.getOrdersByUsername,
   updateOrder: exports.updateOrder,
   deleteOrder: exports.deleteOrder,
+  getReviewsByProduct: exports.getReviewsByProduct
 };
