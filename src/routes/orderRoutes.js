@@ -31,6 +31,6 @@ router.put('/update', authMiddleware, isAdmin, updateOrder);
 router.delete('/delete', authMiddleware, isAdmin, deleteOrder);
 
 // 🟡 Lấy đánh giá theo sản phẩm (Công khai)
-router.get('/reviews/product/:product_id', getReviewsByProduct);
+router.get('/:product_id', getReviewsByProduct);
 
 module.exports = router;
