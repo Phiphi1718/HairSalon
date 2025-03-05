@@ -10,10 +10,6 @@ exports.createOrder = async (req, res) => {
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'Danh sách sản phẩm không được để trống' });
     }
-    const validPaymentMethods = ['cash', 'card'];
-    if (payment_method && !validPaymentMethods.includes(payment_method)) {
-      return res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ' });
-    }
 
     let totalAmount = 0;
     for (let item of items) {
@@ -26,6 +22,8 @@ exports.createOrder = async (req, res) => {
       item.price_at_time = price;
       totalAmount += price * item.quantity;
     }
+
+    totalAmount += 30000; // Cộng phí ship 30k vào tổng tiền
 
     const orderResult = await pool.query(
       'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING id',
