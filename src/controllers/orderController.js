@@ -127,8 +127,14 @@ exports.getAllOrders = [authMiddleware, isAdmin, async (req, res) => {
 // 🟡 Lấy danh sách đơn hàng của user (KHÁCH HÀNG)
 exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
   try {
-    const user_id = req.user.id;
+    // Lấy username từ query parameter (hoặc body nếu bạn muốn)
+    const { username } = req.query; // Ví dụ: GET /api/orders/by-username?username=example_user
 
+    if (!username) {
+      return res.status(400).json({ message: "Thiếu username trong yêu cầu" });
+    }
+
+    // Truy vấn đơn hàng dựa trên username
     const result = await pool.query(`
       SELECT o.id, o.total_amount, o.status, o.created_at, o.payment_method,
              json_agg(
@@ -147,10 +153,11 @@ exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
       FROM orders o
       JOIN order_items oi ON o.id = oi.order_id
       JOIN products p ON oi.product_id = p.id
-      WHERE o.user_id = $1
+      JOIN users u ON o.user_id = u.id
+      WHERE u.username = $1
       GROUP BY o.id
       ORDER BY o.created_at DESC
-    `, [user_id]);
+    `, [username]);
 
     res.json(result.rows);
   } catch (err) {
@@ -158,7 +165,6 @@ exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Lỗi máy chủ', error: err.message });
   }
 }];
-
 // 🟠 Cập nhật trạng thái đơn hàng (ADMIN)
 exports.updateOrder = [authMiddleware, isAdmin, async (req, res) => {
   try {
