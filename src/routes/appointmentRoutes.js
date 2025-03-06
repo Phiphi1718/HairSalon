@@ -17,7 +17,7 @@ router.get('/all', authMiddleware, getAllAppointments);  // Chỉ admin được
 // Then put the parameterized route after
 router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
-router.put('/update', authMiddleware, updateAppointment);  // Chỉ admin có thể cập nhật
+router.put('/update/:appointment_id', authMiddleware, updateAppointment);
 router.delete('/:appointment_id',authMiddleware, deleteAppointment);
 router.post('/:appointment_id/review', authMiddleware, addReviewToAppointment);
 
