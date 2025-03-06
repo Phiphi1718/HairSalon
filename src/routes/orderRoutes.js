@@ -21,8 +21,8 @@ router.post('/reviews/create', authMiddleware, createReview);
 // 🟡 Lấy danh sách tất cả đơn hàng (Admin)
 router.get('/all', authMiddleware, isAdmin, getAllOrders);
 
-// 🟡 Lấy danh sách đơn hàng của user (Khách hàng)
-router.get('/me', authMiddleware, getOrdersByUsername);
+// 🟡 Lấy danh sách đơn hàng theo username (Khách hàng)
+router.get('/by-username', authMiddleware, getOrdersByUsername); // Đổi từ /me thành /by-username
 
 // 🟠 Cập nhật trạng thái đơn hàng (Admin)
 router.put('/update', authMiddleware, isAdmin, updateOrder);
