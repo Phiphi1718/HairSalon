@@ -127,7 +127,7 @@ exports.getAllOrders = [authMiddleware, isAdmin, async (req, res) => {
 // 🟡 Lấy danh sách đơn hàng của user (KHÁCH HÀNG)
 exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
   try {
-    const username = req.headers['x-username']; // Lấy từ header
+    const username = req.headers['x-username'];
     if (!username) {
       return res.status(400).json({ message: "Thiếu username trong header X-Username" });
     }
@@ -136,6 +136,7 @@ exports.getOrdersByUsername = [authMiddleware, async (req, res) => {
       SELECT o.id, o.total_amount, o.status, o.created_at, o.payment_method,
              json_agg(
                json_build_object(
+                 'product_id', p.id,
                  'product_name', p.name,
                  'quantity', oi.quantity,
                  'price_at_time', oi.price_at_time,
