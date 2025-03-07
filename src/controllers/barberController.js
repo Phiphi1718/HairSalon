@@ -1,5 +1,6 @@
 const pool = require("../db");
-const { cloudinary, upload } = require("../cloudinary");
+const cloudinary = require("../config/cloudinary"); // Import Cloudinary
+const fs = require("fs").promises; // Dùng fs.promises để xóa file bất đồng bộ
 
 // Lấy danh sách tất cả thợ cắt tóc
 exports.getAllBarbers = async (req, res) => {
@@ -25,36 +26,51 @@ exports.getBarberById = async (req, res) => {
   }
 };
 
-// Thêm thợ cắt tóc mới (với ảnh upload lên Cloudinary)
+// Thêm thợ cắt tóc mới
 exports.createBarber = async (req, res) => {
   const { full_name, date_of_birth, experience_years, phone, address } = req.body;
+  let imageUrl = null;
+
   try {
-    let imageUrl = null;
     if (req.file) {
-      imageUrl = req.file.path; // URL từ Cloudinary sau khi upload
+      // Upload file từ disk lên Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url; // Lấy URL từ Cloudinary
+
+      // Xóa file tạm sau khi upload
+      await fs.unlink(req.file.path);
     }
 
-    const result = await pool.query(
+    const queryResult = await pool.query(
       `INSERT INTO barbers (full_name, date_of_birth, experience_years, phone, address, image) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [full_name, date_of_birth, experience_years, phone, address, imageUrl]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(queryResult.rows[0]);
   } catch (error) {
+    console.error("Lỗi khi thêm thợ cắt tóc:", error);
+    // Xóa file tạm nếu có lỗi
+    if (req.file) await fs.unlink(req.file.path).catch(console.error);
     res.status(500).json({ message: "Lỗi khi thêm thợ cắt tóc", error });
   }
 };
 
-// Cập nhật thông tin thợ cắt tóc (với ảnh upload lên Cloudinary)
+// Cập nhật thông tin thợ cắt tóc
 exports.updateBarber = async (req, res) => {
   const { id } = req.params;
   const { full_name, date_of_birth, experience_years, phone, address } = req.body;
+  let imageUrl = null;
+
   try {
-    let imageUrl = null;
     if (req.file) {
-      imageUrl = req.file.path; // URL từ Cloudinary sau khi upload
+      // Upload file từ disk lên Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url; // Lấy URL từ Cloudinary
+
+      // Xóa file tạm sau khi upload
+      await fs.unlink(req.file.path);
     } else {
-      // Nếu không có ảnh mới, giữ nguyên ảnh cũ
+      // Giữ ảnh cũ nếu không upload ảnh mới
       const current = await pool.query("SELECT image FROM barbers WHERE id = $1", [id]);
       imageUrl = current.rows[0]?.image;
     }
@@ -69,6 +85,9 @@ exports.updateBarber = async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
+    console.error("Lỗi khi cập nhật thợ cắt tóc:", error);
+    // Xóa file tạm nếu có lỗi
+    if (req.file) await fs.unlink(req.file.path).catch(console.error);
     res.status(500).json({ message: "Lỗi khi cập nhật thợ cắt tóc", error });
   }
 };
