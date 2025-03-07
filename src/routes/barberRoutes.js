@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const barberController = require("../controllers/barberController");
 const { authMiddleware, isAdmin } = require("../middlewares/authMiddleware");
-const { upload } = require("../cloudinary");
+const cloudinary = require('../config/cloudinary');
 
 router.get("/barbers", barberController.getAllBarbers);
 router.get("/barbers/:id", authMiddleware, isAdmin, barberController.getBarberById);
