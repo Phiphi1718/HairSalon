@@ -49,15 +49,26 @@ const Review = {
 
   async update(id, rating, comment) {
     const result = await pool.query(
-      `UPDATE reviews SET rating = $2, comment = $3, updated_at = NOW()
-       WHERE id = $1 RETURNING *;`,
+      `UPDATE reviews 
+       SET rating = $2, comment = $3 
+       WHERE id = $1 
+       RETURNING *;`,
       [id, rating, comment]
     );
+    if (result.rows.length === 0) {
+      throw new Error("Review không tồn tại");
+    }
     return result.rows[0];
   },
 
   async delete(id) {
-    await pool.query('DELETE FROM reviews WHERE id = $1;', [id]);
+    const result = await pool.query(
+      'DELETE FROM reviews WHERE id = $1 RETURNING *;',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      throw new Error("Review không tồn tại");
+    }
     return { message: 'Review deleted' };
   }
 };
