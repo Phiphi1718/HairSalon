@@ -5,14 +5,40 @@ const Appointment = require('../models/Appointment'); // Đảm bảo bạn đã
 // Lấy tất cả lịch hẹn (Chỉ Admin mới được xem)
 const getAllAppointments = async (req, res) => {
   try {
-    // Truy vấn tất cả lịch hẹn từ cơ sở dữ liệu
-    const result = await pool.query('SELECT * FROM appointments');
-    
+    const query = `
+      SELECT 
+        a.id, 
+        a.user_id, 
+        u.username as user_name,
+        a.barber_id, 
+        b.full_name as barber_name,
+        a.service_id, 
+        s.service_name as service_name,
+        a.appointment_date, 
+        a.status, 
+        a.total_amount,
+        a.created_at,
+        a.rating,
+        a.review_text,
+        a.reviewed_at
+      FROM 
+        appointments a
+      JOIN 
+        users u ON a.user_id = u.id
+      JOIN 
+        barbers b ON a.barber_id = b.id
+      JOIN 
+        services s ON a.service_id = s.id
+      ORDER BY 
+        a.appointment_date DESC
+    `;
+    const result = await pool.query(query);
+
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Không có lịch hẹn nào' });
+      return res.status(404).json({ message: "Không có lịch hẹn nào" });
     }
 
-    res.json(result.rows); // Trả về tất cả lịch hẹn
+    res.json(result.rows);
   } catch (error) {
     console.error("Error fetching appointments:", error);
     res.status(500).json({ message: "Không thể lấy thông tin lịch hẹn", error: error.message });
