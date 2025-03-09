@@ -28,10 +28,6 @@ const getServiceByName = async (req, res) => {
 
 // Thêm dịch vụ mới (Chỉ admin)
 const createService = async (req, res) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Bạn không có quyền thêm dịch vụ' });
-  }
-
   const { service_name, description, price, duration_minutes } = req.body;
   try {
     const result = await pool.query(
