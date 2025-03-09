@@ -155,7 +155,6 @@ const updateAppointment = async (req, res) => {
 
     // Xây dựng câu lệnh SQL động dựa trên các trường được cung cấp
     if (user_name && barber_name && service_name) {
-      // Nếu thay đổi thông tin cơ bản của cuộc hẹn
       const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
       const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
       const service = await pool.query('SELECT id, price FROM services WHERE service_name = $1', [service_name]);
@@ -173,7 +172,6 @@ const updateAppointment = async (req, res) => {
       updateFields.push(`service_id = $${paramCounter++}`);
       queryParams.push(service.rows[0].id);
 
-      // Tính toán lại tổng tiền nếu thay đổi service
       updateFields.push(`total_amount = $${paramCounter++}`);
       queryParams.push(service.rows[0].price);
     }
@@ -188,7 +186,6 @@ const updateAppointment = async (req, res) => {
       queryParams.push(status);
     }
 
-    // Xử lý thông tin đánh giá
     if (rating !== undefined) {
       if (rating < 1 || rating > 5) {
         return res.status(400).json({ message: 'Đánh giá phải có giá trị từ 1 đến 5' });
@@ -202,25 +199,36 @@ const updateAppointment = async (req, res) => {
       queryParams.push(review_text);
     }
 
-    // Nếu có cập nhật đánh giá, cập nhật thời gian đánh giá
     if (rating !== undefined || review_text !== undefined) {
       updateFields.push(`reviewed_at = CURRENT_TIMESTAMP`);
     }
 
-    // Nếu không có trường nào được cập nhật
     if (updateFields.length === 0) {
       return res.status(400).json({ message: 'Không có thông tin nào để cập nhật' });
     }
 
-    // Thêm appointment_id vào cuối mảng params
     queryParams.push(appointment_id);
 
-    // Xây dựng và thực thi câu lệnh SQL
+    // Truy vấn cập nhật và trả về dữ liệu đầy đủ bằng cách join với các bảng khác
     const updateQuery = `
       UPDATE appointments
       SET ${updateFields.join(', ')}
       WHERE id = $${paramCounter}
-      RETURNING *
+      RETURNING 
+        id, 
+        user_id, 
+        (SELECT username FROM users WHERE id = appointments.user_id) as user_name,
+        barber_id, 
+        (SELECT full_name FROM barbers WHERE id = appointments.barber_id) as barber_name,
+        service_id, 
+        (SELECT service_name FROM services WHERE id = appointments.service_id) as service_name,
+        appointment_date, 
+        status, 
+        total_amount, 
+        created_at, 
+        rating, 
+        review_text, 
+        reviewed_at
     `;
 
     const result = await pool.query(updateQuery, queryParams);
@@ -234,7 +242,6 @@ const updateAppointment = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi cập nhật lịch hẹn', error: error.message });
   }
 };
-
 // Xóa lịch hẹn theo ID (Chỉ Admin)
 const deleteAppointment = async (req, res) => {
   const { appointment_id } = req.params; // Lấy ID từ URL
