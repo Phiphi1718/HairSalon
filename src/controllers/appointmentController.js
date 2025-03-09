@@ -147,6 +147,7 @@ const createAppointment = async (req, res) => {
 
     // Gửi thông báo qua WebSocket
     const io = getIo();
+    console.log("Emitting newAppointment event:", newAppointment); // Thêm log để kiểm tra
     io.emit("newAppointment", {
       message: `Lịch hẹn mới từ ${user_name}`,
       appointment: newAppointment,
