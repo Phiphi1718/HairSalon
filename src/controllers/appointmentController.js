@@ -1,6 +1,7 @@
 const pool = require('../db');
 const User = require('../models/userModel');  // Điều chỉnh đường dẫn nếu cần thiết
 const Appointment = require('../models/Appointment'); // Đảm bảo bạn đã tạo model Appointment
+const { getIo } = require("../socket");
 
 // Lấy tất cả lịch hẹn (Chỉ Admin mới được xem)
 const getAllAppointments = async (req, res) => {
@@ -107,7 +108,6 @@ const createAppointment = async (req, res) => {
   const { user_name, barber_name, service_name, appointment_date, status } = req.body;
 
   try {
-    // Tìm ID của user, barber, service dựa trên name
     const user = await pool.query('SELECT id FROM users WHERE username = $1', [user_name]);
     const barber = await pool.query('SELECT id FROM barbers WHERE full_name = $1', [barber_name]);
     const service = await pool.query('SELECT id, price FROM services WHERE service_name = $1', [service_name]);
@@ -120,20 +120,42 @@ const createAppointment = async (req, res) => {
     const barber_id = barber.rows[0].id;
     const service_id = service.rows[0].id;
     const price = service.rows[0].price;
+    const total_amount = price;
 
-    // Tính toán tổng tiền
-    const total_amount = price;  // Giả sử là giá dịch vụ
-
-    // Thêm lịch hẹn
     const result = await pool.query(
-      'INSERT INTO appointments (user_id, barber_id, service_id, appointment_date, status, total_amount) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      `INSERT INTO appointments (user_id, barber_id, service_id, appointment_date, status, total_amount) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING 
+         id, 
+         user_id, 
+         (SELECT username FROM users WHERE id = $1) as user_name,
+         barber_id, 
+         (SELECT full_name FROM barbers WHERE id = $2) as barber_name,
+         service_id, 
+         (SELECT service_name FROM services WHERE id = $3) as service_name,
+         appointment_date, 
+         status, 
+         total_amount, 
+         created_at, 
+         rating, 
+         review_text, 
+         reviewed_at`,
       [user_id, barber_id, service_id, appointment_date, status || 'pending', total_amount]
     );
 
-    res.status(201).json({ message: 'Lịch hẹn đã được tạo', appointment: result.rows[0] });
+    const newAppointment = result.rows[0];
+
+    // Gửi thông báo qua WebSocket
+    const io = getIo();
+    io.emit("newAppointment", {
+      message: `Lịch hẹn mới từ ${user_name}`,
+      appointment: newAppointment,
+    });
+
+    res.status(201).json({ message: 'Lịch hẹn đã được tạo', appointment: newAppointment });
   } catch (error) {
     console.error('Lỗi khi tạo lịch hẹn:', error);
-    res.status(500).json({ message: 'Lỗi khi tạo lịch hẹn', error });
+    res.status(500).json({ message: 'Lỗi khi tạo lịch hẹn', error: error.message });
   }
 };
 
