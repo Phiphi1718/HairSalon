@@ -49,10 +49,18 @@ const Review = {
 
   async update(id, rating, comment) {
     const result = await pool.query(
-      `UPDATE reviews 
-       SET rating = $2, comment = $3 
-       WHERE id = $1 
-       RETURNING *;`,
+      `UPDATE reviews r
+       SET rating = $2, comment = $3
+       FROM users u
+       WHERE r.id = $1 AND r.user_id = u.id
+       RETURNING 
+         r.id, 
+         r.user_id, 
+         r.rating, 
+         r.comment, 
+         r.created_at,
+         u.username,
+         COALESCE(u.image_url, '/default-avatar.png') AS image_url;`,
       [id, rating, comment]
     );
     if (result.rows.length === 0) {
