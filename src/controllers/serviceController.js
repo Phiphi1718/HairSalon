@@ -41,12 +41,7 @@ const createService = async (req, res) => {
   }
 };
 
-// Cập nhật thông tin dịch vụ theo name (Chỉ admin)
 const updateServiceByName = async (req, res) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Bạn không có quyền cập nhật dịch vụ' });
-  }
-
   const { name } = req.params;
   const { description, price, duration_minutes } = req.body;
   try {
@@ -64,12 +59,8 @@ const updateServiceByName = async (req, res) => {
   }
 };
 
-// Xóa dịch vụ theo name (Chỉ admin)
+// Xóa dịch vụ theo name
 const deleteServiceByName = async (req, res) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Bạn không có quyền xóa dịch vụ' });
-  }
-
   const { name } = req.params;
   try {
     const result = await pool.query('DELETE FROM services WHERE service_name = $1 RETURNING *;', [name]);
