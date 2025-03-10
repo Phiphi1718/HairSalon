@@ -5,7 +5,7 @@ let io;
 function initSocket(server) {
   io = socketIo(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000", // URL frontend
+      origin: process.env.FRONTEND_URL || "http://localhost:3000",
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -23,7 +23,7 @@ function initSocket(server) {
 
 function getIo() {
   if (!io) {
-    throw new Error("Socket.io not initialized!");
+    throw new Error("Socket.io not initialized! Please call initSocket first.");
   }
   return io;
 }
