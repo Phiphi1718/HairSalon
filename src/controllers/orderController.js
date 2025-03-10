@@ -26,19 +26,38 @@ exports.createOrder = async (req, res) => {
     totalAmount += 30000; // Cộng phí ship 30k vào tổng tiền
 
     const orderResult = await pool.query(
-      'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING id',
+      'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING *', // Thêm RETURNING *
       [user_id, totalAmount, 'pending', payment_method || 'cash']
     );
-    const order_id = orderResult.rows[0].id;
+    const order = orderResult.rows[0];
 
     for (let item of items) {
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)',
-        [order_id, item.product_id, item.quantity, item.price_at_time]
+        [order.id, item.product_id, item.quantity, item.price_at_time]
       );
     }
 
-    res.status(201).json({ message: 'Tạo đơn hàng thành công', order_id });
+    // Phát sự kiện WebSocket khi đơn hàng được tạo
+    const io = req.io;
+    io.emit('newOrder', {
+      message: `Đơn hàng mới #${order.id} từ người dùng ID ${user_id}`,
+      order: {
+        id: order.id,
+        user_id: user_id,
+        total_amount: order.total_amount,
+        status: order.status,
+        payment_method: order.payment_method,
+        created_at: order.created_at,
+        items: items.map(item => ({
+          product_name: item.product_name,
+          quantity: item.quantity,
+          price_at_time: item.price_at_time,
+        })),
+      },
+    });
+
+    res.status(201).json({ message: 'Tạo đơn hàng thành công', order_id: order.id });
   } catch (err) {
     console.error('Lỗi khi tạo đơn hàng:', err);
     res.status(500).json({ message: 'Lỗi máy chủ', error: err.message });
