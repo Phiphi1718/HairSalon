@@ -1,5 +1,6 @@
 const pool = require('../db');
 const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
+const { getIo } = require('../socket'); // Đảm bảo đường dẫn đúng
 
 // 🟢 Tạo đơn hàng mới (KHÁCH HÀNG)
 exports.createOrder = async (req, res) => {
