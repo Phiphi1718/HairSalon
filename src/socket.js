@@ -5,7 +5,7 @@ let io;
 function initSocket(server) {
   io = socketIo(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: process.env.FRONTEND_URL || "http://192.168.0.101:3000",
       methods: ["GET", "POST"],
       credentials: true,
     },
