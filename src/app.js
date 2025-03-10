@@ -8,7 +8,7 @@ const { initSocket } = require("./socket");
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
-const barberRoutes = require('./routes/barberRoutes');
+const BarberRoutes = require('./routes/barberRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require("./routes/userRoutes");
@@ -18,11 +18,11 @@ const app = express();
 const server = http.createServer(app);
 
 // Khởi tạo Socket.io
-initSocket(server);
+initSocket(server); // Đảm bảo gọi trước khi sử dụng app
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000", // URL frontend, lấy từ biến môi trường
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
@@ -33,7 +33,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/appointments', appointmentRoutes);
-app.use('/api', barberRoutes);
+app.use('/api', BarberRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
@@ -44,5 +44,10 @@ app.get('/', (req, res) => {
   res.send('🎉 Backend Haircut API đang chạy!');
 });
 
+// Khởi động server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 module.exports = app;
