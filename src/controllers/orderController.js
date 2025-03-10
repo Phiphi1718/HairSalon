@@ -26,7 +26,7 @@ exports.createOrder = async (req, res) => {
     totalAmount += 30000; // Cộng phí ship 30k vào tổng tiền
 
     const orderResult = await pool.query(
-      'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING *', // Thêm RETURNING *
+      'INSERT INTO orders (user_id, total_amount, status, payment_method) VALUES ($1, $2, $3, $4) RETURNING *',
       [user_id, totalAmount, 'pending', payment_method || 'cash']
     );
     const order = orderResult.rows[0];
@@ -38,22 +38,29 @@ exports.createOrder = async (req, res) => {
       );
     }
 
-    // Phát sự kiện WebSocket khi đơn hàng được tạo
-    const io = req.io;
+    // Lấy thông tin user_name để gửi qua WebSocket
+    const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [user_id]);
+    const user_name = userResult.rows[0].username;
+
+    // Lấy danh sách sản phẩm chi tiết để gửi qua WebSocket
+    const orderItems = items.map(item => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price_at_time: item.price_at_time,
+    }));
+
+    // Phát sự kiện WebSocket
+    const io = getIo();
     io.emit('newOrder', {
-      message: `Đơn hàng mới #${order.id} từ người dùng ID ${user_id}`,
+      message: `Đơn hàng mới #${order.id} từ ${user_name}`,
       order: {
         id: order.id,
-        user_id: user_id,
+        user_name: user_name,
         total_amount: order.total_amount,
         status: order.status,
         payment_method: order.payment_method,
         created_at: order.created_at,
-        items: items.map(item => ({
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price_at_time: item.price_at_time,
-        })),
+        items: orderItems,
       },
     });
 
@@ -63,7 +70,6 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({ message: 'Lỗi máy chủ', error: err.message });
   }
 };
-
 // 🟢 Tạo đánh giá sản phẩm (KHÁCH HÀNG)
 exports.createReview = async (req, res) => {
   try {
