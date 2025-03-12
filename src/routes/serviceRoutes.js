@@ -4,7 +4,7 @@ const serviceController = require('../controllers/serviceController');
 const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 
 // Người dùng bình thường có thể lấy thông tin dịch vụ
-router.get('/getall', authMiddleware, serviceController.getAllServices);
+router.get('/getall', serviceController.getAllServices);
 router.get('/:name', authMiddleware, serviceController.getServiceByName);
 router.post('/create', authMiddleware, isAdmin, serviceController.createService);
 
