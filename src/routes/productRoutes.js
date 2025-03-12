@@ -30,7 +30,7 @@ const fs = require('fs');
 fs.promises.mkdir('uploads', { recursive: true }).catch(console.error);
 
 // Routes
-router.get('/getall', authMiddleware, productController.getAllProducts);
+router.get('/getall', productController.getAllProducts);
 router.get('/:name', authMiddleware, productController.getProductByName);
 
 // Route với upload ảnh
