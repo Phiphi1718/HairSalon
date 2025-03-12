@@ -13,7 +13,7 @@ const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 // Put specific routes BEFORE parameterized routes
-router.get('/all', authMiddleware, getAllAppointments);  // Chỉ admin được xem
+router.get('/all', getAllAppointments);
 // Then put the parameterized route after
 router.get('/:username', authMiddleware, getAppointmentsByUsername);
 router.post('/create', authMiddleware, createAppointment);       // Ai cũng có thể đặt lịch hẹn
