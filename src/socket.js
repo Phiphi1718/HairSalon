@@ -8,7 +8,7 @@ function initSocket(server) {
       origin: function (origin, callback) {
         const allowedOrigins = [
           "http://localhost:3000", // Thêm origin cho local development
-          "https://hair-salon-frontend.vercel.app", // Sửa lỗi chính tả "forntend" thành "frontend"
+          "https://hair-salon-forntend.vercel.app/", // Sửa lỗi chính tả "forntend" thành "frontend"
         ];
 
         // Cho phép request không có origin (như từ server hoặc công cụ)
