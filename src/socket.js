@@ -1,11 +1,24 @@
-const socketIo = require("socket.io");
+const { Server } = require("socket.io"); // Sử dụng cú pháp ES6 import thay vì commonjs để rõ ràng hơn
 
 let io;
 
 function initSocket(server) {
-  io = socketIo(server, {
+  io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+      origin: function (origin, callback) {
+        const allowedOrigins = [
+          "http://localhost:3000", // Thêm origin cho local development
+          "https://hair-salon-frontend.vercel.app", // Sửa lỗi chính tả "forntend" thành "frontend"
+        ];
+
+        // Cho phép request không có origin (như từ server hoặc công cụ)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
