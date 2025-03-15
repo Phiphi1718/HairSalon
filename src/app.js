@@ -23,7 +23,7 @@ initSocket(server); // Đảm bảo gọi trước khi sử dụng app
 // Middleware
 const allowedOrigins = [
   "http://localhost:3000", // Thêm origin cho local development
-  "https://hair-salon-frontend.vercel.app" // Sửa lỗi chính tả "forntend" thành "frontend"
+  "https://hair-salon-forntend.vercel.app/" // Sửa lỗi chính tả "forntend" thành "frontend"
 ];
 
 app.use(cors({
