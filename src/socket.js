@@ -5,7 +5,10 @@ let io;
 function initSocket(server) {
   io = socketIo(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+      origin: [
+        process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+        "http://localhost:3000", // Cho phép cả localhost
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },
