@@ -18,27 +18,32 @@ const app = express();
 const server = http.createServer(app);
 
 // Khởi tạo Socket.io
-initSocket(server); // Đảm bảo gọi trước khi sử dụng app
+initSocket(server);
 
 // Middleware
 const allowedOrigins = [
-  "http://localhost:3000", // Thêm origin cho local development
-  "https://hair-salon-forntend.vercel.app/" // Sửa lỗi chính tả "forntend" thành "frontend"
+  "http://localhost:3000", // Local development
+  "https://hair-salon-forntend.vercel.app", // Frontend production (giữ nguyên tên domain bạn cung cấp)
+  "https://hair-salon-frontend.vercel.app", // Thêm biến thể có thể
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Cho phép request không có origin (như mobile apps hoặc curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
+    console.log("CORS Request Origin:", origin); // Log để debug
+    if (!origin) return callback(null, true); // Cho phép request không có origin (như Postman)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, origin); // Trả về origin cụ thể để tránh lỗi
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log(`CORS Error: Origin ${origin} not allowed`);
+      return callback(new Error(`CORS Error: Origin ${origin} not allowed`));
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Thêm OPTIONS để hỗ trợ preflight
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"], // Thêm các header cho preflight
   credentials: true,
+  optionsSuccessStatus: 200, // Xử lý thành công preflight request
 }));
+
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -56,5 +61,8 @@ app.use('/api/reviews', reviewRoutes);
 app.get('/', (req, res) => {
   res.send('🎉 Backend Haircut API đang chạy!');
 });
+
+// Xử lý preflight request cho tất cả route
+app.options('*', cors()); // Cho phép preflight cho mọi route
 
 module.exports = app;
