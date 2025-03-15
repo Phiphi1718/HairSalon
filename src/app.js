@@ -21,8 +21,21 @@ const server = http.createServer(app);
 initSocket(server); // Đảm bảo gọi trước khi sử dụng app
 
 // Middleware
+const allowedOrigins = [
+  "http://localhost:3000", // Thêm origin cho local development
+  "https://hair-salon-frontend.vercel.app" // Sửa lỗi chính tả "forntend" thành "frontend"
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+  origin: function (origin, callback) {
+    // Cho phép request không có origin (như mobile apps hoặc curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
@@ -43,7 +56,5 @@ app.use('/api/reviews', reviewRoutes);
 app.get('/', (req, res) => {
   res.send('🎉 Backend Haircut API đang chạy!');
 });
-
-
 
 module.exports = app;
