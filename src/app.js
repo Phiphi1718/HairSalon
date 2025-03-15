@@ -22,10 +22,14 @@ initSocket(server); // Đảm bảo gọi trước khi sử dụng app
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+  origin: [
+    process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+    "http://localhost:3000", // Hỗ trợ cả localhost để dev
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
+
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
