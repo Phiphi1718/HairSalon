@@ -1,25 +1,28 @@
-const { Server } = require("socket.io"); // Sử dụng cú pháp ES6 import thay vì commonjs để rõ ràng hơn
+const { Server } = require("socket.io");
 
 let io;
 
 function initSocket(server) {
+  const allowedOrigins = [
+    "http://localhost:3000", // Local development
+    "https://hair-salon-forntend.vercel.app", // Frontend production (giữ nguyên tên domain bạn cung cấp)
+    "https://hair-salon-frontend.vercel.app", // Thêm biến thể có thể
+  ];
+
   io = new Server(server, {
     cors: {
       origin: function (origin, callback) {
-        const allowedOrigins = [
-          "http://localhost:3000", // Thêm origin cho local development
-          "https://hair-salon-forntend.vercel.app/", // Sửa lỗi chính tả "forntend" thành "frontend"
-        ];
-
-        // Cho phép request không có origin (như từ server hoặc công cụ)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-          callback(null, true);
+        console.log("Socket CORS Request Origin:", origin); // Log để debug
+        if (!origin) return callback(null, true); // Cho phép request không có origin
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, origin); // Trả về origin cụ thể
         } else {
-          callback(new Error("Not allowed by CORS"));
+          console.log(`Socket CORS Error: Origin ${origin} not allowed`);
+          return callback(new Error(`Socket CORS Error: Origin ${origin} not allowed`));
         }
       },
-      methods: ["GET", "POST"],
+      methods: ["GET", "POST", "OPTIONS"], // Thêm OPTIONS để hỗ trợ preflight
+      allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
       credentials: true,
     },
   });
