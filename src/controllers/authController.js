@@ -47,7 +47,7 @@ login: async (req, res) => {
         const token = jwt.sign(
             { id: user.id, username: user.username, user_type_id: user.user_type_id },
             process.env.JWT_SECRET,
-            { expiresIn: "14d" } // Token sống 7 ngày
+            { expiresIn: "1d" } // Token sống 1 ngày
         );
         console.log('Token created:', token);
 
