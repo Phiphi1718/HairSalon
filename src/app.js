@@ -100,24 +100,12 @@ const authLimiter = rateLimit({
 });
 
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log("CORS Request Origin:", origin);
-    if (!origin) {
-      console.log("No origin provided, allowing request");
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) {
-      console.log(`Origin ${origin} allowed for HTTP`);
-      return callback(null, origin);
-    } else {
-      console.log(`CORS Error: Origin ${origin} not allowed`);
-      return callback(new Error(`CORS Error: Origin ${origin} not allowed`));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  origin: [
+    process.env.FRONTEND_URL || "https://hair-salon-forntend.vercel.app",
+    "http://localhost:3000", // Hỗ trợ cả localhost để dev
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
-  optionsSuccessStatus: 200,
 }));
 
 app.use(express.json());
