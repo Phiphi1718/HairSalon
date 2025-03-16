@@ -50,32 +50,57 @@ const verifyRecaptcha = async (req, res, next) => {
     // Lấy token reCAPTCHA từ request
     const recaptchaToken = req.body.recaptchaToken;
     
-    // Nếu không có token, hãy trả về lỗi
+    console.log("reCAPTCHA token received:", recaptchaToken ? "Token received" : "No token");
+    
+    // Kiểm tra token
     if (!recaptchaToken) {
       return res.status(400).json({ success: false, message: 'reCAPTCHA token is required' });
     }
     
-    // Gửi request đến Google để xác minh token
-    const response = await axios.post(
-      'https://www.google.com/recaptcha/api/siteverify',
-      null,
-      {
-        params: {
-          secret: process.env.RECAPTCHA_SECRET_KEY, // Lưu key bí mật trong biến môi trường
-          response: recaptchaToken
-        }
-      }
-    );
+    console.log("Secret key exists:", !!process.env.RECAPTCHA_SECRET_KEY);
     
-    // Kiểm tra kết quả
-    if (response.data.success) {
-      next(); // Cho phép tiếp tục nếu xác minh thành công
-    } else {
-      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
+    // Gửi request đến Google với error handling chi tiết hơn
+    try {
+      const response = await axios.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        null,
+        {
+          params: {
+            secret: process.env.RECAPTCHA_SECRET_KEY,
+            response: recaptchaToken
+          }
+        }
+      );
+      
+      console.log("Google reCAPTCHA response:", response.data);
+      
+      // Kiểm tra kết quả
+      if (response.data.success) {
+        next(); // Cho phép tiếp tục nếu xác minh thành công
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'reCAPTCHA verification failed',
+          details: response.data['error-codes'] 
+        });
+      }
+    } catch (googleError) {
+      console.error("Google API error:", googleError.message);
+      console.error("Full error:", googleError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error communicating with Google reCAPTCHA service',
+        details: googleError.message
+      });
     }
   } catch (error) {
-    console.error('reCAPTCHA verification error:', error);
-    return res.status(500).json({ success: false, message: 'Error verifying reCAPTCHA' });
+    console.error('reCAPTCHA middleware error:', error.message);
+    console.error('Full error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Error verifying reCAPTCHA',
+      details: error.message
+    });
   }
 };
 
