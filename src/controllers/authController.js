@@ -58,23 +58,16 @@ login: async (req, res) => {
     }
 },
 
-// Đăng xuất và yêu cầu frontend xóa token)
+// Đăng xuất
 logout: async (req, res) => {
     try {
-        // Xóa refresh token từ cookie (nếu có)
-        res.clearCookie("refreshToken");
-        
-        // Trả về phản hồi yêu cầu frontend xóa token
-        res.json({ 
-            message: "Đăng xuất thành công!", 
-            clearToken: true // Tín hiệu yêu cầu frontend xóa token
-        });
+        // Trả về phản hồi với tín hiệu xóa token
+        res.json({ message: "Đăng xuất thành công!", clearToken: true });
     } catch (error) {
         console.error('Logout error:', error.stack);
         res.status(500).json({ message: "Lỗi server!", error: error.message });
     }
 },
-
   forgotPassword: async (req, res) => {
     try {
       const { email } = req.body;
