@@ -8,11 +8,11 @@ require('dotenv').config();
 const authController = {
   register: async (req, res) => {
     try {
-      const { username, email, password, phone, captchaToken } = req.body;
+      const { username, email, password, phone, recaptchaToken } = req.body;
 
-      // Kiểm tra CAPTCHA (đã được xác minh bởi middleware verifyRecaptcha)
-      if (!captchaToken) {
-        return res.status(400).json({ message: "CAPTCHA token is required" });
+      // Kiểm tra reCAPTCHA (đã được xác minh bởi middleware verifyRecaptcha)
+      if (!recaptchaToken) {
+        return res.status(400).json({ message: "reCAPTCHA token is required" });
       }
 
       // Kiểm tra xem email đã tồn tại chưa
@@ -35,12 +35,12 @@ const authController = {
 
   login: async (req, res) => {
     try {
-      const { username, password, captchaToken } = req.body;
+      const { username, password, recaptchaToken } = req.body;
       console.log('Request body:', req.body);
 
-      // Kiểm tra CAPTCHA (đã được xác minh bởi middleware verifyRecaptcha)
-      if (!captchaToken) {
-        return res.status(400).json({ message: "CAPTCHA token is required" });
+      // Kiểm tra reCAPTCHA (đã được xác minh bởi middleware verifyRecaptcha)
+      if (!recaptchaToken) {
+        return res.status(400).json({ message: "reCAPTCHA token is required" });
       }
 
       const user = await User.findByUsername(username);
