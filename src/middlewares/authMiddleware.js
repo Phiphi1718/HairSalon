@@ -45,4 +45,38 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, isAdmin };
+const verifyRecaptcha = async (req, res, next) => {
+  try {
+    // Lấy token reCAPTCHA từ request
+    const recaptchaToken = req.body.recaptchaToken;
+    
+    // Nếu không có token, hãy trả về lỗi
+    if (!recaptchaToken) {
+      return res.status(400).json({ success: false, message: 'reCAPTCHA token is required' });
+    }
+    
+    // Gửi request đến Google để xác minh token
+    const response = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      null,
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY, // Lưu key bí mật trong biến môi trường
+          response: recaptchaToken
+        }
+      }
+    );
+    
+    // Kiểm tra kết quả
+    if (response.data.success) {
+      next(); // Cho phép tiếp tục nếu xác minh thành công
+    } else {
+      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
+    }
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    return res.status(500).json({ success: false, message: 'Error verifying reCAPTCHA' });
+  }
+};
+
+module.exports = { authMiddleware, isAdmin, verifyRecaptcha };
