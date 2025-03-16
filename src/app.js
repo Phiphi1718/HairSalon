@@ -22,7 +22,7 @@ const server = http.createServer(app);
 
 // Khởi tạo Redis client
 const redisClient = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379', // Thay bằng URL Redis của bạn
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
 });
 
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
@@ -51,7 +51,7 @@ const verifyRecaptcha = async (req, res, next) => {
       null,
       {
         params: {
-          secret: process.env.RECAPTCHA_SECRET_KEY, // Secret Key từ .env
+          secret: process.env.RECAPTCHA_SECRET_KEY,
           response: captchaToken,
         },
       }
@@ -75,7 +75,7 @@ const blockIpMiddleware = async (req, res, next) => {
   try {
     const attempts = await redisClient.incr(key);
     if (attempts === 1) {
-      await redisClient.expire(key, 3600); // Hết hạn sau 1 giờ
+      await redisClient.expire(key, 3600);
     }
 
     if (attempts > 20) {
@@ -92,8 +92,8 @@ const blockIpMiddleware = async (req, res, next) => {
 
 // Rate limiting cho login và register
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 10, // Giới hạn 10 request từ cùng một IP
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 15 phút.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -143,9 +143,21 @@ app.get('/', (req, res) => {
 
 app.options('*', cors());
 
+// Sử dụng port động từ Render
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Xử lý lỗi khi port bị chiếm dụng
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Please ensure no other processes are using this port.`);
+    process.exit(1);
+  } else {
+    console.error('Server error:', error);
+    throw error;
+  }
 });
 
 module.exports = app;
