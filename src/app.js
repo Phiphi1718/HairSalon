@@ -3,11 +3,10 @@ const cors = require('cors');
 const http = require('http');
 const path = require("path");
 const rateLimit = require('express-rate-limit');
-const redis = require('redis');
 const axios = require('axios');
 const { initSocket } = require("./socket");
 
-// Routes
+// Import Routes
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -20,15 +19,29 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// Khởi tạo Redis client
-const redisClient = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
+// ✅ Kiểm tra Redis có tồn tại không trước khi import
+let redisClient;
+try {
+  const redis = require('redis');
+  redisClient = redis.createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
-redisClient.connect();
+  redisClient.on('error', (err) => console.log('🚨 Redis Error:', err));
 
-// Khởi tạo Socket.io
+  (async () => {
+    try {
+      await redisClient.connect();
+      console.log('✅ Redis connected successfully');
+    } catch (error) {
+      console.error('❌ Failed to connect Redis:', error);
+    }
+  })();
+} catch (error) {
+  console.warn('⚠️ Redis module not found. Running without Redis caching.');
+}
+
+// ✅ Khởi tạo Socket.io
 initSocket(server);
 
 // Middleware
@@ -38,7 +51,7 @@ const allowedOrigins = [
   "https://hair-salon-frontend.vercel.app",
 ];
 
-// Middleware để xác minh reCAPTCHA
+// ✅ Kiểm tra và xác minh reCAPTCHA
 const verifyRecaptcha = async (req, res, next) => {
   const { captchaToken } = req.body;
   if (!captchaToken) {
@@ -57,18 +70,20 @@ const verifyRecaptcha = async (req, res, next) => {
       }
     );
 
-    const { success } = response.data;
-    if (!success) {
+    if (!response.data.success) {
       return res.status(400).json({ message: "CAPTCHA verification failed" });
     }
     next();
   } catch (error) {
+    console.error("❌ reCAPTCHA Error:", error);
     return res.status(500).json({ message: "Error verifying CAPTCHA" });
   }
 };
 
-// Middleware để kiểm tra và chặn IP
+// ✅ Middleware chặn IP khi spam
 const blockIpMiddleware = async (req, res, next) => {
+  if (!redisClient) return next(); // Nếu không có Redis, bỏ qua
+
   const ip = req.ip;
   const key = `auth_attempts:${ip}`;
 
@@ -79,18 +94,18 @@ const blockIpMiddleware = async (req, res, next) => {
     }
 
     if (attempts > 20) {
-      console.log(`IP ${ip} blocked due to too many attempts`);
+      console.log(`🚨 IP ${ip} bị chặn do quá nhiều request`);
       return res.status(403).json({ message: "IP của bạn đã bị chặn do quá nhiều yêu cầu. Vui lòng thử lại sau." });
     }
 
     next();
   } catch (error) {
-    console.error('Redis error:', error);
+    console.error('❌ Redis error:', error);
     next();
   }
 };
 
-// Rate limiting cho login và register
+// ✅ Rate limit login và register
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -99,34 +114,23 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ✅ CORS Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("CORS Request Origin:", origin);
-    if (!origin) {
-      console.log("No origin provided, allowing request");
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) {
-      console.log(`Origin ${origin} allowed for HTTP`);
-      return callback(null, origin);
-    } else {
-      console.log(`CORS Error: Origin ${origin} not allowed`);
-      return callback(new Error(`CORS Error: Origin ${origin} not allowed`));
-    }
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, origin);
+    return callback(new Error(`CORS Error: Origin ${origin} not allowed`));
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   credentials: true,
-  optionsSuccessStatus: 200,
 }));
 
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Áp dụng middleware cho route auth
+// ✅ Sử dụng middleware cho route auth
 app.use('/api/auth', blockIpMiddleware, authLimiter, verifyRecaptcha);
 
-// Routes
+// ✅ Import Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -136,28 +140,38 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
 
-// Route test
+// ✅ Route test
 app.get('/', (req, res) => {
   res.send('🎉 Backend Haircut API đang chạy!');
 });
 
 app.options('*', cors());
 
-// Sử dụng port động từ Render
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Xử lý lỗi khi port bị chiếm dụng
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please ensure no other processes are using this port.`);
-    process.exit(1);
-  } else {
-    console.error('Server error:', error);
-    throw error;
+// ✅ Xử lý lỗi PORT bị chiếm dụng
+const getAvailablePort = async (port, maxAttempts = 5) => {
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    try {
+      server.listen(port, '0.0.0.0', () => {
+        console.log(`✅ Server running on port ${port}`);
+      });
+      return;
+    } catch (error) {
+      if (error.code === 'EADDRINUSE') {
+        console.warn(`⚠️ Port ${port} bị chiếm dụng. Thử cổng mới...`);
+        port += 1;
+        attempts++;
+      } else {
+        throw error;
+      }
+    }
   }
-});
+  console.error('❌ Không thể tìm được cổng khả dụng.');
+  process.exit(1);
+};
+
+// ✅ Lấy PORT từ biến môi trường hoặc random
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+getAvailablePort(PORT);
 
 module.exports = app;
